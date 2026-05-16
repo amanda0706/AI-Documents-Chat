@@ -36,7 +36,7 @@ class RankedSentence:
 RISK_RULES = [
     {
         "category": "payment",
-        "patterns": ("net 60", "net 90", "late fee", "invoice"),
+        "patterns": ("net 60", "net 90", "late fee", "within sixty", "within ninety"),
         "severity": "medium",
         "title": "Długi termin płatności",
         "explanation": "Dłuższy termin płatności może pogorszyć płynność finansową.",
