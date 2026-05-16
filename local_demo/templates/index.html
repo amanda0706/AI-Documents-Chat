@@ -54,6 +54,7 @@
     <script>
       let documents = [];
       let selectedId = null;
+      let messages = [];
       const $ = (id) => document.getElementById(id);
       async function api(path, options) { const r = await fetch(path, options); return r.json(); }
       async function load() {
@@ -101,15 +102,28 @@
             <div class="stack">
               <div class="panel"><h3>AI Summary</h3><p>${d.summary.summary}</p></div>
               <div class="panel"><h3>Risk score · ${d.summary.overall_score}/100</h3>${d.summary.risks.map(r=>`<div class="risk"><strong>${r.title}</strong> <span class="tag">${r.severity}</span><p>${r.explanation}</p></div>`).join('') || '<p class="muted">Brak ryzyk.</p>'}</div>
-              <div class="panel"><h3>Ask this contract</h3><textarea id="question" placeholder="Np. jaki jest termin wypowiedzenia?"></textarea><button id="ask">Ask</button><p id="answer" class="fragment">Zadaj pytanie o dokument.</p><div id="citations"></div></div>
+              <div class="panel"><h3>Ask this contract</h3><div id="messages"></div><textarea id="question" placeholder="Np. jaki jest termin wypowiedzenia?"></textarea><button id="ask">Ask</button><p id="answer" class="fragment">Zadaj pytanie o dokument.</p><div id="citations"></div></div>
               <div class="panel"><h3>Share document</h3><input id="shareEmail" placeholder="email współpracownika"/><button id="share">Share</button><p class="muted">${d.shared_with.join(', ') || 'Jeszcze nikomu nie udostępniono.'}</p></div>
             </div>
           </div>`;
         $('ask').onclick = async () => {
-          if (d.id.startsWith('demo-')) { $('answer').textContent = d.fragments[0].text; $('citations').innerHTML = citationMarkup([d.fragments[0]]); return; }
+          const currentQuestion = $('question').value.trim();
+          if (!currentQuestion) return;
+          messages.push({role:'user', content:currentQuestion});
+          if (d.id.startsWith('demo-')) { 
+            $('answer').textContent = d.fragments[0].text; 
+            $('citations').innerHTML = citationMarkup([d.fragments[0]]);
+            messages.push({role:'assistant', content:d.fragments[0].text});
+            $('question').value = '';
+            renderMessages();
+            return; 
+          }
           const res = await api(`/api/documents/${d.id}/ask`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:$('question').value})});
           $('answer').textContent = res.answer;
           $('citations').innerHTML = citationMarkup(res.citations || []);
+          messages.push({role:'assistant', content:res.answer});
+          $('question').value = '';
+          renderMessages();
         };
         $('share').onclick = async () => {
           const email = $('shareEmail').value;
@@ -143,6 +157,9 @@
       function citationMarkup(items) {
         if (!items.length) return '';
         return `<h4>Supporting passages</h4>${items.map(item => `<div class="fragment"><small>Page ${item.page}</small><p>${item.text}</p></div>`).join('')}`;
+      }
+      function renderMessages() {
+        $('messages').innerHTML = messages.map(message => `<div class="fragment">${message.role === 'user' ? 'You: ' : 'Assistant: '}${message.content}</div>`).join('');
       }
       document.querySelectorAll('.nav button').forEach(btn => btn.onclick = () => {
         document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); btn.classList.add('active');

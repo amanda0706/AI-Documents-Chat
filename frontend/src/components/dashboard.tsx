@@ -10,6 +10,11 @@ type DashboardProps = {
 };
 
 type View = "overview" | "document" | "compare" | "suggestions";
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  citations?: DocumentItem["fragments"];
+};
 
 const severityStyles = {
   low: "bg-emerald-50 text-emerald-700",
@@ -26,6 +31,7 @@ export function Dashboard({ documents, stats }: DashboardProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("Zadaj pytanie o termin wypowiedzenia, płatności albo odpowiedzialność.");
   const [citations, setCitations] = useState<DocumentItem["fragments"]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [query, setQuery] = useState("");
   const [shareEmail, setShareEmail] = useState("");
   const [compareId, setCompareId] = useState(documents[1]?.id ?? documents[0]?.id ?? "");
@@ -46,6 +52,8 @@ export function Dashboard({ documents, stats }: DashboardProps) {
 
   async function askQuestion() {
     if (!question.trim() || !selected) return;
+    const currentQuestion = question.trim();
+    setMessages((current) => [...current, { role: "user", content: currentQuestion }]);
     if (!selected.id.startsWith("demo-")) {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/documents/${selected.id}/ask`,
@@ -59,6 +67,11 @@ export function Dashboard({ documents, stats }: DashboardProps) {
         const payload = await response.json();
         setAnswer(payload.answer);
         setCitations(payload.citations ?? []);
+        setMessages((current) => [
+          ...current,
+          { role: "assistant", content: payload.answer, citations: payload.citations ?? [] },
+        ]);
+        setQuestion("");
         return;
       }
     }
@@ -71,6 +84,15 @@ export function Dashboard({ documents, stats }: DashboardProps) {
       ) ?? selected.fragments[0];
     setAnswer(hit ? `Najbardziej pasujący fragment jest na stronie ${hit.page}: ${hit.text}` : "Brak trafienia.");
     setCitations(hit ? [hit] : []);
+    setMessages((current) => [
+      ...current,
+      {
+        role: "assistant",
+        content: hit ? `Najbardziej pasujący fragment jest na stronie ${hit.page}: ${hit.text}` : "Brak trafienia.",
+        citations: hit ? [hit] : [],
+      },
+    ]);
+    setQuestion("");
   }
 
   async function uploadDocument(file?: File) {
@@ -223,6 +245,7 @@ export function Dashboard({ documents, stats }: DashboardProps) {
               setQuestion={setQuestion}
               answer={answer}
               citations={citations}
+              messages={messages}
               askQuestion={askQuestion}
               shareEmail={shareEmail}
               setShareEmail={setShareEmail}
@@ -292,6 +315,7 @@ function DocumentWorkspace(props: {
   setQuestion: (value: string) => void;
   answer: string;
   citations: DocumentItem["fragments"];
+  messages: ChatMessage[];
   askQuestion: () => void;
   shareEmail: string;
   setShareEmail: (value: string) => void;
@@ -327,6 +351,20 @@ function DocumentWorkspace(props: {
           </div>
         </Panel>
         <Panel title="Ask this contract">
+          {props.messages.length > 0 && (
+            <div className="mb-4 space-y-3">
+              {props.messages.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}`}
+                  className={`rounded-2xl p-4 text-sm leading-6 ${
+                    message.role === "user" ? "bg-slate-900 text-white" : "bg-blue-50 text-slate-700"
+                  }`}
+                >
+                  {message.content}
+                </div>
+              ))}
+            </div>
+          )}
           <textarea value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Np. jaki jest termin wypowiedzenia?" className="min-h-24 w-full rounded-2xl border border-line p-4 text-sm outline-none" />
           <button onClick={props.askQuestion} className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white">Ask</button>
           <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">{props.answer}</div>
