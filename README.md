@@ -124,6 +124,15 @@ Then open:
 
 - local demo: `http://127.0.0.1:5050`
 
+## Quick demo path
+
+1. Start the backend and frontend, or use the lightweight local demo mode.
+2. Upload `samples/master-services-agreement.txt`.
+3. Upload `samples/supplier-agreement.txt`.
+4. Ask: `What are the payment terms?`
+5. Open the comparison view and compare both documents.
+6. Inspect the risk score, suggested edits, and supporting passages below the answer.
+
 ## Main API endpoints
 
 - `GET /dashboard`
