@@ -23,6 +23,14 @@ const severityStyles = {
   high: "bg-rose-50 text-rose-700",
 };
 
+const riskMarkers: Record<string, string[]> = {
+  payment: ["net 60", "net 90", "within sixty", "within ninety"],
+  termination: ["90 days", "terminate for convenience"],
+  liability: ["limitation of liability", "indirect damages", "consequential"],
+  renewal: ["automatic renewal", "auto-renew"],
+  confidentiality: ["confidentiality", "confidential information", "non-disclosure"],
+};
+
 export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
   const [email, setEmail] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -361,10 +369,11 @@ function DocumentWorkspace(props: {
         </div>
         <div className="space-y-4">
           {props.fragments.map((fragment) => (
-            <article key={fragment.id} className="rounded-3xl border border-line bg-slate-50 p-5 leading-7">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Page {fragment.page}</div>
-              {fragment.text}
-            </article>
+            <DocumentFragmentCard
+              key={fragment.id}
+              fragment={fragment}
+              risks={selected.summary.risks}
+            />
           ))}
         </div>
       </section>
@@ -418,6 +427,34 @@ function DocumentWorkspace(props: {
         </Panel>
       </aside>
     </div>
+  );
+}
+
+function DocumentFragmentCard({
+  fragment,
+  risks,
+}: {
+  fragment: DocumentItem["fragments"][number];
+  risks: RiskItem[];
+}) {
+  const matchedRisk = risks.find((risk) =>
+    (riskMarkers[risk.category] ?? []).some((marker) =>
+      fragment.text.toLowerCase().includes(marker),
+    ),
+  );
+
+  return (
+    <article className="rounded-3xl border border-line bg-slate-50 p-5 leading-7">
+      <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+        Page {fragment.page}
+      </div>
+      {matchedRisk && (
+        <div className="mb-3 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+          Risk: {matchedRisk.title}
+        </div>
+      )}
+      {fragment.text}
+    </article>
   );
 }
 

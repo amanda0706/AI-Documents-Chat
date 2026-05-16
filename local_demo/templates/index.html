@@ -109,7 +109,7 @@
           <div class="workspace">
             <div class="panel">
               <h2>${d.filename}</h2>
-              ${d.fragments.map(f=>`<div class="fragment"><small>Page ${f.page}</small><p>${f.text}</p></div>`).join('')}
+              ${d.fragments.map(f=>`<div class="fragment"><small>Page ${f.page}</small>${riskBadge(d, f)}<p>${f.text}</p></div>`).join('')}
             </div>
             <div class="stack">
               <div class="panel"><h3>AI Summary</h3><p>${d.summary.summary}</p></div>
@@ -177,6 +177,17 @@
       function citationMarkup(items) {
         if (!items.length) return '';
         return `<h4>Supporting passages</h4>${items.map(item => `<div class="fragment"><small>Page ${item.page}</small><p>${item.text}</p></div>`).join('')}`;
+      }
+      function riskBadge(document, fragment) {
+        const markers = {
+          payment:['net 60','net 90','within sixty','within ninety'],
+          termination:['90 days','terminate for convenience'],
+          liability:['limitation of liability','indirect damages','consequential'],
+          renewal:['automatic renewal','auto-renew'],
+          confidentiality:['confidentiality','confidential information','non-disclosure']
+        };
+        const risk = document.summary.risks.find(risk => (markers[risk.category] || []).some(marker => fragment.text.toLowerCase().includes(marker)));
+        return risk ? `<div class="tag">Risk: ${risk.title}</div>` : '';
       }
       function renderMessages() {
         $('messages').innerHTML = messages.map(message => `<div class="fragment">${message.role === 'user' ? 'You: ' : 'Assistant: '}${message.content}</div>`).join('');
