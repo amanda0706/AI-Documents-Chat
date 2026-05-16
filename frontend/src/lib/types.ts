@@ -34,6 +34,11 @@ export type DocumentItem = {
   filename: string;
   page_count: number;
   shared_with: string[];
+  activity: {
+    type: string;
+    label: string;
+    detail: string;
+  }[];
   summary: DocumentSummary;
   fragments: Fragment[];
 };

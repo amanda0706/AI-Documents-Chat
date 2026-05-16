@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from uuid import uuid4
 
-from .models import DocumentDetail, DocumentFragment, DocumentSummary
+from .models import ActivityItem, DocumentDetail, DocumentFragment, DocumentSummary
 
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -41,6 +41,13 @@ def create_document(filename: str, page_texts: list[str], summary: DocumentSumma
         filename=filename,
         page_count=len(page_texts),
         shared_with=[],
+        activity=[
+            ActivityItem(
+                type="upload",
+                label="Document uploaded",
+                detail="File added and analyzed locally.",
+            )
+        ],
         summary=summary,
         fragments=fragments,
     )
@@ -58,6 +65,18 @@ def get_document(doc_id: str) -> DocumentDetail | None:
     return DocumentDetail(**payload) if payload else None
 
 
+def add_activity(doc_id: str, item: ActivityItem) -> DocumentDetail | None:
+    documents = load_all()
+    payload = documents.get(doc_id)
+    if not payload:
+        return None
+    payload.setdefault("activity", [])
+    payload["activity"].insert(0, item.model_dump())
+    documents[doc_id] = payload
+    save_all(documents)
+    return DocumentDetail(**payload)
+
+
 def share_document(doc_id: str, email: str) -> DocumentDetail | None:
     documents = load_all()
     payload = documents.get(doc_id)
@@ -66,6 +85,15 @@ def share_document(doc_id: str, email: str) -> DocumentDetail | None:
     shared = set(payload.get("shared_with", []))
     shared.add(email)
     payload["shared_with"] = sorted(shared)
+    payload.setdefault("activity", [])
+    payload["activity"].insert(
+        0,
+        ActivityItem(
+            type="share",
+            label="Document shared",
+            detail=f"Shared with {email}.",
+        ).model_dump(),
+    )
     documents[doc_id] = payload
     save_all(documents)
     return DocumentDetail(**payload)

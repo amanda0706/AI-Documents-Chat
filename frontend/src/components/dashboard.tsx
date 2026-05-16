@@ -89,6 +89,11 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
           ...current,
           { role: "assistant", content: payload.answer, citations: payload.citations ?? [] },
         ]);
+        addLocalActivity(selected.id, {
+          type: "question",
+          label: "Question asked",
+          detail: currentQuestion,
+        });
         setQuestion("");
         return;
       }
@@ -110,6 +115,11 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
         citations: hit ? [hit] : [],
       },
     ]);
+    addLocalActivity(selected.id, {
+      type: "question",
+      label: "Question asked",
+      detail: currentQuestion,
+    });
     setQuestion("");
   }
 
@@ -146,7 +156,16 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
     } else {
       setItems((current) =>
         current.map((item) =>
-          item.id === selected.id ? { ...item, shared_with: [...item.shared_with, shareEmail] } : item,
+          item.id === selected.id
+            ? {
+                ...item,
+                shared_with: [...item.shared_with, shareEmail],
+                activity: [
+                  { type: "share", label: "Document shared", detail: `Shared with ${shareEmail}.` },
+                  ...item.activity,
+                ],
+              }
+            : item,
         ),
       );
     }
@@ -157,6 +176,11 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
     if (!selected || !compareId) return;
     if (!selected.id.startsWith("demo-") && !compareId.startsWith("demo-")) {
       setComparison(await compareDocuments(selected.id, compareId));
+      addLocalActivity(selected.id, {
+        type: "compare",
+        label: "Compared with another contract",
+        detail: `Compared with ${items.find((item) => item.id === compareId)?.filename ?? "another document"}.`,
+      });
       return;
     }
     const other = items.find((item) => item.id === compareId);
@@ -179,6 +203,19 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
         },
       ],
     });
+    addLocalActivity(selected.id, {
+      type: "compare",
+      label: "Compared with another contract",
+      detail: `Compared with ${other?.filename ?? "another document"}.`,
+    });
+  }
+
+  function addLocalActivity(documentId: string, activity: DocumentItem["activity"][number]) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === documentId ? { ...item, activity: [activity, ...item.activity] } : item,
+      ),
+    );
   }
 
   if (!isLoggedIn) {
@@ -456,6 +493,16 @@ function DocumentWorkspace(props: {
           <input value={props.shareEmail} onChange={(event) => props.setShareEmail(event.target.value)} placeholder="email współpracownika" className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
           <button onClick={props.shareDocument} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium">Share</button>
           <p className="mt-3 text-sm text-slate-500">{selected.shared_with.join(", ") || "Jeszcze nikomu nie udostępniono."}</p>
+        </Panel>
+        <Panel title="Activity">
+          <div className="space-y-3">
+            {selected.activity.length ? selected.activity.slice(0, 5).map((item, index) => (
+              <div key={`${item.type}-${index}`} className="rounded-2xl bg-slate-50 p-4 text-sm">
+                <div className="font-medium">{item.label}</div>
+                <div className="mt-1 text-slate-500">{item.detail}</div>
+              </div>
+            )) : <p className="text-sm text-slate-500">No activity yet.</p>}
+          </div>
         </Panel>
       </aside>
     </div>

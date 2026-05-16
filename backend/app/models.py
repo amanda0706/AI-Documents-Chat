@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DocumentFragment(BaseModel):
@@ -37,6 +37,7 @@ class DocumentDetail(BaseModel):
     filename: str
     page_count: int
     shared_with: list[str]
+    activity: list["ActivityItem"] = Field(default_factory=list)
     summary: DocumentSummary
     fragments: list[DocumentFragment]
 
@@ -53,6 +54,12 @@ class QuestionRequest(BaseModel):
 class QuestionResponse(BaseModel):
     answer: str
     citations: list[DocumentFragment]
+
+
+class ActivityItem(BaseModel):
+    type: str
+    label: str
+    detail: str
 
 
 class CompareRequest(BaseModel):
@@ -83,4 +90,3 @@ class DashboardStats(BaseModel):
     high_risk_documents: int
     average_score: int
     shared_documents: int
-

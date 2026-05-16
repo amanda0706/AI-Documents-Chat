@@ -18,8 +18,8 @@ from app.analyzer import (  # noqa: E402
     overall_score,
     summarize,
 )
-from app.models import DocumentSummary  # noqa: E402
-from app.store import create_document, get_document, list_documents, share_document  # noqa: E402
+from app.models import ActivityItem, DocumentSummary  # noqa: E402
+from app.store import add_activity, create_document, get_document, list_documents, share_document  # noqa: E402
 
 
 app = Flask(__name__)
@@ -89,6 +89,10 @@ def ask(doc_id: str):
     payload = request.get_json(force=True)
     answer, relevant = answer_question(payload["question"], [fragment.text for fragment in document.fragments])
     citations = [fragment.model_dump() for fragment in document.fragments if fragment.text in relevant]
+    add_activity(
+        doc_id,
+        ActivityItem(type="question", label="Question asked", detail=payload["question"]),
+    )
     return jsonify(answer=answer, citations=citations)
 
 
@@ -111,6 +115,14 @@ def compare():
     differences = compare_documents(
         "\n".join(fragment.text for fragment in left.fragments),
         "\n".join(fragment.text for fragment in right.fragments),
+    )
+    add_activity(
+        left.id,
+        ActivityItem(
+            type="compare",
+            label="Compared with another contract",
+            detail=f"Compared with {right.filename}.",
+        ),
     )
     return jsonify(
         left_filename=left.filename,

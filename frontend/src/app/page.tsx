@@ -7,6 +7,13 @@ const demoDocuments = [
     filename: "Master Services Agreement.pdf",
     page_count: 3,
     shared_with: ["anna@firma.pl"],
+    activity: [
+      {
+        type: "upload",
+        label: "Document uploaded",
+        detail: "File added and analyzed locally.",
+      },
+    ],
     summary: {
       title: "Master Services Agreement.pdf",
       summary:
@@ -59,6 +66,13 @@ const demoDocuments = [
     filename: "Supplier Agreement.pdf",
     page_count: 2,
     shared_with: [],
+    activity: [
+      {
+        type: "upload",
+        label: "Document uploaded",
+        detail: "File added and analyzed locally.",
+      },
+    ],
     summary: {
       title: "Supplier Agreement.pdf",
       summary: "Alternatywna wersja umowy z krótszym terminem płatności i mniejszym ryzykiem.",

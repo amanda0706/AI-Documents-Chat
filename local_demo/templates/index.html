@@ -75,8 +75,8 @@
       }
       function demoDocs() {
         return [
-          {id:'demo-1',filename:'Master Services Agreement.pdf',page_count:3,shared_with:['anna@firma.pl'],summary:{overall_score:41,language:'en',summary:'Umowa obejmuje płatności, wypowiedzenie i odpowiedzialność.',risks:[{title:'Długi termin płatności',severity:'medium',explanation:'Płatność po 60 dniach może obciążać cash flow.'},{title:'Ograniczona odpowiedzialność',severity:'high',explanation:'Wyłączenia mogą utrudnić dochodzenie roszczeń.'}],suggestions:[{title:'Skróć termin płatności',rationale:'Poprawia płynność.',proposed_text:'Payment terms shall be net 30 days.'}]},fragments:[{id:'a',page:1,text:'Payment terms are net 60 days from invoice date.'},{id:'b',page:2,text:'Either party may terminate with 90 days written notice.'}]},
-          {id:'demo-2',filename:'Supplier Agreement.pdf',page_count:2,shared_with:[],summary:{overall_score:82,language:'en',summary:'Bez większych ryzyk.',risks:[],suggestions:[]},fragments:[{id:'c',page:1,text:'Payment terms are net 30 days.'},{id:'d',page:2,text:'Either party may terminate with 30 days written notice.'}]}
+          {id:'demo-1',filename:'Master Services Agreement.pdf',page_count:3,shared_with:['anna@firma.pl'],activity:[{type:'upload',label:'Document uploaded',detail:'File added and analyzed locally.'}],summary:{overall_score:41,language:'en',summary:'Umowa obejmuje płatności, wypowiedzenie i odpowiedzialność.',risks:[{title:'Długi termin płatności',severity:'medium',explanation:'Płatność po 60 dniach może obciążać cash flow.'},{title:'Ograniczona odpowiedzialność',severity:'high',explanation:'Wyłączenia mogą utrudnić dochodzenie roszczeń.'}],suggestions:[{title:'Skróć termin płatności',rationale:'Poprawia płynność.',proposed_text:'Payment terms shall be net 30 days.'}]},fragments:[{id:'a',page:1,text:'Payment terms are net 60 days from invoice date.'},{id:'b',page:2,text:'Either party may terminate with 90 days written notice.'}]},
+          {id:'demo-2',filename:'Supplier Agreement.pdf',page_count:2,shared_with:[],activity:[{type:'upload',label:'Document uploaded',detail:'File added and analyzed locally.'}],summary:{overall_score:82,language:'en',summary:'Bez większych ryzyk.',risks:[],suggestions:[]},fragments:[{id:'c',page:1,text:'Payment terms are net 30 days.'},{id:'d',page:2,text:'Either party may terminate with 30 days written notice.'}]}
         ];
       }
       function current() { return documents.find(d => d.id === selectedId); }
@@ -144,6 +144,7 @@
             $('answer').textContent = d.fragments[0].text; 
             $('citations').innerHTML = citationMarkup([d.fragments[0]]);
             messages.push({role:'assistant', content:d.fragments[0].text});
+            d.activity.unshift({type:'question',label:'Question asked',detail:currentQuestion});
             $('question').value = '';
             renderMessages();
             return; 
@@ -152,13 +153,17 @@
           $('answer').textContent = res.answer;
           $('citations').innerHTML = citationMarkup(res.citations || []);
           messages.push({role:'assistant', content:res.answer});
+          d.activity.unshift({type:'question',label:'Question asked',detail:currentQuestion});
           $('question').value = '';
           renderMessages();
         };
         $('share').onclick = async () => {
           const email = $('shareEmail').value;
           if (!email) return;
-          if (d.id.startsWith('demo-')) d.shared_with.push(email);
+          if (d.id.startsWith('demo-')) {
+            d.shared_with.push(email);
+            d.activity.unshift({type:'share',label:'Document shared',detail:`Shared with ${email}.`});
+          }
           else Object.assign(d, await api(`/api/documents/${d.id}/share`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})}));
           renderDocument(); renderOverview();
         };
@@ -181,6 +186,7 @@
           let res;
           if (d.id.startsWith('demo-') || otherId.startsWith('demo-')) res = {summary:'Znaleziono 2 istotne różnice.',differences:[{category:'payment',left_text:'net 60',right_text:'net 30',impact:'Wpływ na cash flow.'},{category:'termination',left_text:'90 days',right_text:'30 days',impact:'Wpływ na elastyczność.'}]};
           else res = await api('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({left_id:d.id,right_id:otherId})});
+          d.activity.unshift({type:'compare',label:'Compared with another contract',detail:`Compared with ${documents.find(x => x.id === otherId)?.filename || 'another document'}.`});
           $('compareResult').innerHTML = `
             <div class="difference">
               <strong>${res.differences.length} changes found</strong>
@@ -201,6 +207,11 @@
       function citationMarkup(items) {
         if (!items.length) return '';
         return `<h4>Supporting passages</h4>${items.map(item => `<div class="fragment"><small>Page ${item.page}</small><p>${item.text}</p></div>`).join('')}`;
+      }
+      function activityMarkup(document) {
+        return document.activity?.length
+          ? document.activity.slice(0,5).map(item => `<div class="fragment"><strong>${item.label}</strong><p>${item.detail}</p></div>`).join('')
+          : '<p class="muted">No activity yet.</p>';
       }
       function riskBadge(document, fragment) {
         const markers = {

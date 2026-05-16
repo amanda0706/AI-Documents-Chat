@@ -15,6 +15,7 @@ from .analyzer import (
     summarize,
 )
 from .models import (
+    ActivityItem,
     CompareRequest,
     ComparisonResponse,
     DashboardStats,
@@ -24,7 +25,7 @@ from .models import (
     SearchResult,
     ShareRequest,
 )
-from .store import UPLOADS_DIR, create_document, get_document, list_documents, share_document
+from .store import UPLOADS_DIR, add_activity, create_document, get_document, list_documents, share_document
 
 
 app = FastAPI(title="ClausePilot API")
@@ -121,6 +122,14 @@ def ask_document(doc_id: str, payload: QuestionRequest):
         raise HTTPException(status_code=404, detail="Document not found")
     answer, relevant = answer_question(payload.question, [fragment.text for fragment in item.fragments])
     citations = [fragment for fragment in item.fragments if fragment.text in relevant]
+    add_activity(
+        doc_id,
+        ActivityItem(
+            type="question",
+            label="Question asked",
+            detail=payload.question,
+        ),
+    )
     return QuestionResponse(answer=answer, citations=citations)
 
 
@@ -146,6 +155,14 @@ def compare(payload: CompareRequest):
         f"Znaleziono {len(differences)} istotne różnice między dokumentami."
         if differences
         else "Nie wykryto istotnych różnic na podstawie lokalnych reguł."
+    )
+    add_activity(
+        left.id,
+        ActivityItem(
+            type="compare",
+            label="Compared with another contract",
+            detail=f"Compared with {right.filename}.",
+        ),
     )
     return ComparisonResponse(
         left_filename=left.filename,
