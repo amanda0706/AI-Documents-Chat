@@ -1,5 +1,7 @@
 # ClausePilot
 
+![Backend tests](https://github.com/amanda0706/AI-Documents-Chat/actions/workflows/backend-tests.yml/badge.svg)
+
 ClausePilot is a local-first **AI Contract / Document Assistant** for people who need to understand agreements quickly, compare versions, and spot risky clauses before sending them onward.
 
 ## Preview
