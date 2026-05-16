@@ -23,6 +23,9 @@
       textarea { min-height:100px; }
       .stack > * + * { margin-top:12px; }
       .tag { display:inline-block; padding:6px 10px; border-radius:999px; background:#fff3cd; margin-right:8px; font-size:12px; }
+      .filters { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
+      .filters button { padding:8px 12px; background:#eef2ff; font-size:12px; }
+      .filters button.active { background:#111827; color:#fff; }
       .muted { color:#64748b; }
       .hidden { display:none; }
       @media (max-width: 980px) {
@@ -42,6 +45,12 @@
           <button data-view="suggestions">Suggestions</button>
         </nav>
         <h4>Documents</h4>
+        <div class="filters">
+          <button data-risk="all" class="active">All</button>
+          <button data-risk="high">High</button>
+          <button data-risk="medium">Medium</button>
+          <button data-risk="low">Low</button>
+        </div>
         <div id="documents"></div>
       </aside>
       <section>
@@ -55,6 +64,7 @@
       let documents = [];
       let selectedId = null;
       let messages = [];
+      let riskFilter = 'all';
       const $ = (id) => document.getElementById(id);
       async function api(path, options) { const r = await fetch(path, options); return r.json(); }
       async function load() {
@@ -70,8 +80,16 @@
         ];
       }
       function current() { return documents.find(d => d.id === selectedId); }
+      function visibleDocuments() {
+        if (riskFilter === 'all') return documents;
+        return documents.filter(d => d.summary.risks.some(risk => risk.severity === riskFilter));
+      }
       function renderSidebar() {
-        $('documents').innerHTML = documents.map(d => `<button class="doc" data-id="${d.id}"><strong>${d.filename}</strong><br><span class="muted">${d.page_count} pages</span></button>`).join('');
+        const visible = visibleDocuments();
+        if (!visible.some(d => d.id === selectedId)) selectedId = visible[0]?.id || null;
+        $('documents').innerHTML = visible.length
+          ? visible.map(d => `<button class="doc" data-id="${d.id}"><strong>${d.filename}</strong><br><span class="muted">${d.page_count} pages</span></button>`).join('')
+          : '<p class="muted">No documents with this risk level.</p>';
         document.querySelectorAll('.doc').forEach(btn => btn.onclick = () => { selectedId = btn.dataset.id; renderDocument(); renderCompare(); renderSuggestions(); });
       }
       function renderOverview() {
@@ -163,7 +181,13 @@
           let res;
           if (d.id.startsWith('demo-') || otherId.startsWith('demo-')) res = {summary:'Znaleziono 2 istotne różnice.',differences:[{category:'payment',left_text:'net 60',right_text:'net 30',impact:'Wpływ na cash flow.'},{category:'termination',left_text:'90 days',right_text:'30 days',impact:'Wpływ na elastyczność.'}]};
           else res = await api('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({left_id:d.id,right_id:otherId})});
-          $('compareResult').innerHTML = `<p>${res.summary}</p>${res.differences.map(x=>`<div class="difference"><strong>${x.category}</strong><p>${x.left_text} → ${x.right_text}</p><small>${x.impact}</small></div>`).join('')}`;
+          $('compareResult').innerHTML = `
+            <div class="difference">
+              <strong>${res.differences.length} changes found</strong>
+              <p>${res.summary}</p>
+              <p>${res.differences.map(x => `<span class="tag">${x.category}</span>`).join('')}</p>
+            </div>
+            ${res.differences.map(x=>`<div class="difference"><strong>${x.category}</strong><p>${x.left_text} → ${x.right_text}</p><small>${x.impact}</small></div>`).join('')}`;
         };
       }
       function renderSuggestions() {
@@ -195,6 +219,11 @@
       document.querySelectorAll('.nav button').forEach(btn => btn.onclick = () => {
         document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); btn.classList.add('active');
         ['overview','document','compare','suggestions'].forEach(id => $(id).classList.toggle('hidden', id !== btn.dataset.view));
+      });
+      document.querySelectorAll('.filters button').forEach(btn => btn.onclick = () => {
+        riskFilter = btn.dataset.risk;
+        document.querySelectorAll('.filters button').forEach(x => x.classList.toggle('active', x === btn));
+        renderSidebar(); renderDocument(); renderCompare(); renderSuggestions();
       });
       $('file').onchange = async (event) => {
         const form = new FormData(); form.append('file', event.target.files[0]);

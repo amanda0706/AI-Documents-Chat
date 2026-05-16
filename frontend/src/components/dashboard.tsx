@@ -11,6 +11,7 @@ type DashboardProps = {
 };
 
 type View = "overview" | "document" | "compare" | "suggestions";
+type RiskFilter = "all" | "high" | "medium" | "low";
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
@@ -45,10 +46,18 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
   const [shareEmail, setShareEmail] = useState("");
   const [compareId, setCompareId] = useState(documents[1]?.id ?? documents[0]?.id ?? "");
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
+  const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
+
+  const visibleDocuments = useMemo(() => {
+    if (riskFilter === "all") return items;
+    return items.filter((document) =>
+      document.summary.risks.some((risk) => risk.severity === riskFilter),
+    );
+  }, [items, riskFilter]);
 
   const selected = useMemo(
-    () => items.find((document) => document.id === selectedId) ?? items[0],
-    [items, selectedId],
+    () => visibleDocuments.find((document) => document.id === selectedId) ?? visibleDocuments[0],
+    [selectedId, visibleDocuments],
   );
 
   const filteredFragments = useMemo(() => {
@@ -252,8 +261,26 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
             ))}
           </nav>
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Documents</p>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[
+              ["all", "All"],
+              ["high", "High"],
+              ["medium", "Medium"],
+              ["low", "Low"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setRiskFilter(key as RiskFilter)}
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  riskFilter === key ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <div className="space-y-2">
-            {items.map((document) => (
+            {visibleDocuments.map((document) => (
               <button
                 key={document.id}
                 onClick={() => setSelectedId(document.id)}
@@ -265,11 +292,16 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
                 <div className="mt-1 text-xs opacity-70">{document.page_count} pages</div>
               </button>
             ))}
+            {!visibleDocuments.length && (
+              <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                No documents with this risk level.
+              </p>
+            )}
           </div>
         </aside>
 
         <section className="space-y-5">
-          {view === "overview" && <Overview stats={stats} documents={items} />}
+          {view === "overview" && <Overview stats={stats} documents={visibleDocuments} />}
           {view === "document" && selected && (
             <DocumentWorkspace
               selected={selected}
@@ -478,7 +510,23 @@ function CompareView(props: {
       </div>
       {props.comparison && (
         <div className="mt-6">
-          <p className="mb-4 text-slate-600">{props.comparison.summary}</p>
+          <div className="mb-5 grid gap-3 md:grid-cols-[180px_1fr]">
+            <div className="rounded-2xl bg-slate-900 p-4 text-white">
+              <p className="text-sm text-slate-300">Changes found</p>
+              <p className="mt-2 text-3xl font-semibold">{props.comparison.differences.length}</p>
+            </div>
+            <div className="rounded-2xl bg-blue-50 p-4">
+              <p className="text-sm font-medium text-slate-900">Executive summary</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{props.comparison.summary}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {props.comparison.differences.map((difference) => (
+                  <span key={difference.category} className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                    {difference.category}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
           <div className="space-y-3">
             {props.comparison.differences.map((difference) => (
               <div key={difference.category} className="rounded-2xl bg-slate-50 p-4">
