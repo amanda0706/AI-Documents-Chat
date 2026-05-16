@@ -135,6 +135,13 @@ Then open:
 - `POST /documents/{id}/share`
 - `POST /compare`
 
+## Demo materials
+
+The `samples/` directory contains two small contract examples that are useful when demonstrating the comparison and risk-analysis flow:
+
+- `master-services-agreement.txt`
+- `supplier-agreement.txt`
+
 ## Roadmap toward production
 
 1. Replace local heuristic analysis with provider adapter
