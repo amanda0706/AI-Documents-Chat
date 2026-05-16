@@ -2,6 +2,10 @@
 
 ClausePilot is a local-first **AI Contract / Document Assistant** for people who need to understand agreements quickly, compare versions, and spot risky clauses before sending them onward.
 
+## Preview
+
+![ClausePilot interface concept](design/clausepilot-concept.png)
+
 ## What it already does
 
 - upload PDF documents,
