@@ -208,12 +208,22 @@ def compare_documents(left_text: str, right_text: str) -> list[DifferenceItem]:
         left_has_b = marker_b in left_lower
         right_has_b = marker_b in right_lower
         if (left_has_a != right_has_a) or (left_has_b != right_has_b):
+            left_sentence = sentence_for_marker(left_text, marker_a, marker_b)
+            right_sentence = sentence_for_marker(right_text, marker_a, marker_b)
             differences.append(
                 DifferenceItem(
                     category=category,
-                    left_text=marker_a if left_has_a else marker_b if left_has_b else "not found",
-                    right_text=marker_a if right_has_a else marker_b if right_has_b else "not found",
+                    left_text=left_sentence,
+                    right_text=right_sentence,
                     impact=impact,
                 )
             )
     return differences
+
+
+def sentence_for_marker(text: str, marker_a: str, marker_b: str) -> str:
+    for sentence in split_sentences(text):
+        lowered = sentence.lower()
+        if marker_a in lowered or marker_b in lowered:
+            return sentence
+    return "not found"
