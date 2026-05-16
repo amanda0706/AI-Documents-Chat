@@ -24,6 +24,10 @@ ClausePilot is a local-first **AI Contract / Document Assistant** for people who
 
 The product is intentionally developed **without cloud AI first**. That keeps the core workflow testable end-to-end while the local analysis layer acts as a clean substitute for the future provider layer.
 
+## Why this matters
+
+Contract review is often slow, repetitive, and hard to navigate for people who are not lawyers. ClausePilot is designed to shorten the first-pass review loop: surface the important parts, explain why they matter, and keep the original text close enough that the user can verify every answer.
+
 Current local engine:
 
 - PDF text extraction,
@@ -145,9 +149,11 @@ Then open:
 This repository demonstrates:
 
 - product thinking,
-- full-stack development,
-- document processing,
-- AI-oriented architecture,
-- API design,
-- UI design,
+- full-stack development across frontend and backend,
+- document processing with PDF extraction,
+- AI-oriented architecture with a swappable intelligence layer,
+- API design for upload, search, chat, sharing, and comparison flows,
+- explainability patterns through citations and risk scoring,
+- test coverage for core analysis rules,
+- UI design for a product-style dashboard,
 - a clean migration path from local prototype to cloud product.
