@@ -60,8 +60,7 @@
       async function load() {
         try { documents = await api('/api/documents'); }
         catch { documents = []; }
-        if (!documents.length) documents = demoDocs();
-        selectedId ||= documents[0]?.id;
+        selectedId ||= documents[0]?.id || null;
         renderSidebar(); renderOverview(); renderDocument(); renderCompare(); renderSuggestions();
       }
       function demoDocs() {
@@ -76,6 +75,15 @@
         document.querySelectorAll('.doc').forEach(btn => btn.onclick = () => { selectedId = btn.dataset.id; renderDocument(); renderCompare(); renderSuggestions(); });
       }
       function renderOverview() {
+        if (!documents.length) {
+          $('overview').innerHTML = `<div class="panel"><h2>Start with your first contract</h2><p class="muted">Upload a PDF or TXT file to generate a summary, inspect risks, ask questions, and compare revisions.</p><button id="loadDemo">Load demo data</button></div>`;
+          $('loadDemo').onclick = () => {
+            documents = demoDocs();
+            selectedId = documents[0].id;
+            renderSidebar(); renderOverview(); renderDocument(); renderCompare(); renderSuggestions();
+          };
+          return;
+        }
         const high = documents.filter(d => d.summary.risks.some(r => r.severity === 'high')).length;
         const avg = Math.round(documents.reduce((a,d)=>a+d.summary.overall_score,0)/documents.length);
         const shared = documents.filter(d => d.shared_with.length).length;
@@ -93,6 +101,10 @@
       }
       function renderDocument() {
         const d = current();
+        if (!d) {
+          $('document').innerHTML = '';
+          return;
+        }
         $('document').innerHTML = `
           <div class="workspace">
             <div class="panel">
@@ -135,6 +147,10 @@
       }
       function renderCompare() {
         const d = current();
+        if (!d) {
+          $('compare').innerHTML = '';
+          return;
+        }
         $('compare').innerHTML = `
           <div class="panel">
             <h2>Compare contracts</h2>
@@ -152,6 +168,10 @@
       }
       function renderSuggestions() {
         const d = current();
+        if (!d) {
+          $('suggestions').innerHTML = '';
+          return;
+        }
         $('suggestions').innerHTML = `<div class="panel"><h2>AI suggestions</h2>${d.summary.suggestions.map(s=>`<div class="suggestion"><strong>${s.title}</strong><p>${s.rationale}</p><pre>${s.proposed_text}</pre></div>`).join('') || '<p class="muted">Brak sugestii wymagających zmiany.</p>'}</div>`;
       }
       function citationMarkup(items) {

@@ -7,6 +7,7 @@ import type { ComparisonResult, DashboardStats, DocumentItem, RiskItem } from "@
 type DashboardProps = {
   documents: DocumentItem[];
   stats: DashboardStats;
+  demoDocuments: DocumentItem[];
 };
 
 type View = "overview" | "document" | "compare" | "suggestions";
@@ -22,7 +23,7 @@ const severityStyles = {
   high: "bg-rose-50 text-rose-700",
 };
 
-export function Dashboard({ documents, stats }: DashboardProps) {
+export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
   const [email, setEmail] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [items, setItems] = useState(documents);
@@ -182,6 +183,32 @@ export function Dashboard({ documents, stats }: DashboardProps) {
             className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 font-medium text-white"
           >
             Continue
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  if (!items.length) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-mist p-5">
+        <section className="max-w-xl rounded-[28px] bg-white p-8 text-center shadow-panel">
+          <h1 className="text-3xl font-semibold tracking-tight">Start with your first contract</h1>
+          <p className="mt-4 leading-7 text-slate-600">
+            Upload a PDF or TXT file to generate a summary, inspect risks, ask questions, and compare revisions.
+          </p>
+          <label className="mt-6 inline-block cursor-pointer rounded-2xl bg-accent px-5 py-3 font-medium text-white">
+            Upload document
+            <input type="file" accept=".pdf,.txt" className="hidden" onChange={(event) => uploadDocument(event.target.files?.[0])} />
+          </label>
+          <button
+            onClick={() => {
+              setItems(demoDocuments);
+              setSelectedId(demoDocuments[0]?.id ?? "");
+            }}
+            className="ml-3 rounded-2xl border border-line px-5 py-3 font-medium"
+          >
+            Load demo data
           </button>
         </section>
       </main>

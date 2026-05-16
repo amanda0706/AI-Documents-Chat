@@ -86,8 +86,9 @@ export default async function Home() {
   const [documents, stats] = await Promise.all([fetchDocuments(), fetchDashboard()]);
   return (
     <Dashboard
-      documents={documents.length ? documents : demoDocuments}
+      documents={documents}
       stats={documents.length ? stats : demoStats}
+      demoDocuments={demoDocuments}
     />
   );
 }
