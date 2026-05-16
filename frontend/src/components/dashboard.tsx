@@ -25,6 +25,7 @@ export function Dashboard({ documents, stats }: DashboardProps) {
   const [view, setView] = useState<View>("overview");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("Zadaj pytanie o termin wypowiedzenia, płatności albo odpowiedzialność.");
+  const [citations, setCitations] = useState<DocumentItem["fragments"]>([]);
   const [query, setQuery] = useState("");
   const [shareEmail, setShareEmail] = useState("");
   const [compareId, setCompareId] = useState(documents[1]?.id ?? documents[0]?.id ?? "");
@@ -57,6 +58,7 @@ export function Dashboard({ documents, stats }: DashboardProps) {
       if (response.ok) {
         const payload = await response.json();
         setAnswer(payload.answer);
+        setCitations(payload.citations ?? []);
         return;
       }
     }
@@ -68,6 +70,7 @@ export function Dashboard({ documents, stats }: DashboardProps) {
           .some((word) => word.length > 3 && fragment.text.toLowerCase().includes(word)),
       ) ?? selected.fragments[0];
     setAnswer(hit ? `Najbardziej pasujący fragment jest na stronie ${hit.page}: ${hit.text}` : "Brak trafienia.");
+    setCitations(hit ? [hit] : []);
   }
 
   async function uploadDocument(file?: File) {
@@ -219,6 +222,7 @@ export function Dashboard({ documents, stats }: DashboardProps) {
               question={question}
               setQuestion={setQuestion}
               answer={answer}
+              citations={citations}
               askQuestion={askQuestion}
               shareEmail={shareEmail}
               setShareEmail={setShareEmail}
@@ -287,6 +291,7 @@ function DocumentWorkspace(props: {
   question: string;
   setQuestion: (value: string) => void;
   answer: string;
+  citations: DocumentItem["fragments"];
   askQuestion: () => void;
   shareEmail: string;
   setShareEmail: (value: string) => void;
@@ -325,6 +330,21 @@ function DocumentWorkspace(props: {
           <textarea value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Np. jaki jest termin wypowiedzenia?" className="min-h-24 w-full rounded-2xl border border-line p-4 text-sm outline-none" />
           <button onClick={props.askQuestion} className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white">Ask</button>
           <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">{props.answer}</div>
+          {props.citations.length > 0 && (
+            <div className="mt-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Supporting passages
+              </p>
+              {props.citations.map((citation) => (
+                <article key={citation.id} className="rounded-2xl border border-line p-4 text-sm leading-6">
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Page {citation.page}
+                  </div>
+                  {citation.text}
+                </article>
+              ))}
+            </div>
+          )}
         </Panel>
         <Panel title="Share document">
           <input value={props.shareEmail} onChange={(event) => props.setShareEmail(event.target.value)} placeholder="email współpracownika" className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
