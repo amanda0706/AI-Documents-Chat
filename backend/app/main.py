@@ -74,16 +74,19 @@ def document(doc_id: str):
 
 @app.post("/documents/upload")
 async def upload_document(file: UploadFile = File(...)):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+    if not file.filename.lower().endswith((".pdf", ".txt")):
+        raise HTTPException(status_code=400, detail="Only PDF and TXT files are supported")
 
     raw = await file.read()
     temp_path = UPLOADS_DIR / file.filename
     temp_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path.write_bytes(raw)
 
-    reader = PdfReader(temp_path)
-    page_texts = [(page.extract_text() or "").strip() for page in reader.pages]
+    if file.filename.lower().endswith(".pdf"):
+        reader = PdfReader(temp_path)
+        page_texts = [(page.extract_text() or "").strip() for page in reader.pages]
+    else:
+        page_texts = [temp_path.read_text(encoding="utf-8").strip()]
     all_text = "\n".join(page_texts)
     summary_lines = summarize(all_text)
     risks = analyze_risks(all_text)

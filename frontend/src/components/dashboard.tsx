@@ -196,7 +196,7 @@ export function Dashboard({ documents, stats }: DashboardProps) {
           <div className="mb-5 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{email}</div>
           <label className="mb-6 block cursor-pointer rounded-2xl bg-accent px-4 py-3 text-center text-sm font-medium text-white">
             Upload document
-            <input type="file" accept=".pdf" className="hidden" onChange={(event) => uploadDocument(event.target.files?.[0])} />
+            <input type="file" accept=".pdf,.txt" className="hidden" onChange={(event) => uploadDocument(event.target.files?.[0])} />
           </label>
           <nav className="mb-8 space-y-2">
             {[

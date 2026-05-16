@@ -55,14 +55,17 @@ def documents():
 @app.post("/api/documents/upload")
 def upload():
     file = request.files["file"]
-    if not file.filename.lower().endswith(".pdf"):
-        return jsonify(error="Only PDF files are supported"), 400
+    if not file.filename.lower().endswith((".pdf", ".txt")):
+        return jsonify(error="Only PDF and TXT files are supported"), 400
 
     temp_path = ROOT / "backend" / "data" / "uploads" / file.filename
     temp_path.parent.mkdir(parents=True, exist_ok=True)
     file.save(temp_path)
-    reader = PdfReader(temp_path)
-    page_texts = [(page.extract_text() or "").strip() for page in reader.pages]
+    if file.filename.lower().endswith(".pdf"):
+        reader = PdfReader(temp_path)
+        page_texts = [(page.extract_text() or "").strip() for page in reader.pages]
+    else:
+        page_texts = [temp_path.read_text(encoding="utf-8").strip()]
     all_text = "\n".join(page_texts)
     risks = analyze_risks(all_text)
     summary_lines = summarize(all_text)
@@ -119,4 +122,3 @@ def compare():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5050)
-

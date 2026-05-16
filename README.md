@@ -8,7 +8,7 @@ ClausePilot is a local-first **AI Contract / Document Assistant** for people who
 
 ## What it already does
 
-- upload PDF documents,
+- upload PDF and TXT documents,
 - generate summaries,
 - search document fragments,
 - answer questions with supporting passages,
@@ -137,7 +137,7 @@ Then open:
 
 ## Demo materials
 
-The `samples/` directory contains two small contract examples that are useful when demonstrating the comparison and risk-analysis flow:
+The `samples/` directory contains two small contract examples that are useful when demonstrating the comparison and risk-analysis flow. They can be uploaded directly as `.txt` files:
 
 - `master-services-agreement.txt`
 - `supplier-agreement.txt`
