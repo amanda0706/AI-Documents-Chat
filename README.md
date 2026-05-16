@@ -68,6 +68,21 @@ Future provider layer:
 - Planned persistence: PostgreSQL + pgvector
 - Planned cloud: AWS or Azure
 
+## Architecture
+
+```text
+Next.js frontend
+      |
+      v
+FastAPI backend
+      |
+      +--> local document store
+      +--> local analyzer
+      +--> future AI provider adapter
+```
+
+The product is intentionally split so the user-facing workflow can stay stable while the intelligence layer evolves from local heuristics to hosted AI and vector search.
+
 ## Local run
 
 ### Backend
