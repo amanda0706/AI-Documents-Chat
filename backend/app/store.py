@@ -41,6 +41,7 @@ def create_document(filename: str, page_texts: list[str], summary: DocumentSumma
         filename=filename,
         page_count=len(page_texts),
         shared_with=[],
+        review_status="draft",
         activity=[
             ActivityItem(
                 type="upload",
@@ -114,6 +115,26 @@ def add_comment(doc_id: str, comment: CommentItem) -> DocumentDetail | None:
             type="comment",
             label="Comment added",
             detail=comment.body,
+        ).model_dump(),
+    )
+    documents[doc_id] = payload
+    save_all(documents)
+    return DocumentDetail(**payload)
+
+
+def update_review_status(doc_id: str, status: str) -> DocumentDetail | None:
+    documents = load_all()
+    payload = documents.get(doc_id)
+    if not payload:
+        return None
+    payload["review_status"] = status
+    payload.setdefault("activity", [])
+    payload["activity"].insert(
+        0,
+        ActivityItem(
+            type="status",
+            label="Review status updated",
+            detail=f"Status changed to {status}.",
         ).model_dump(),
     )
     documents[doc_id] = payload

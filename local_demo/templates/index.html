@@ -75,8 +75,8 @@
       }
       function demoDocs() {
         return [
-          {id:'demo-1',filename:'Master Services Agreement.pdf',page_count:3,shared_with:['anna@firma.pl'],activity:[{type:'upload',label:'Document uploaded',detail:'File added and analyzed locally.'}],comments:[{author:'anna@firma.pl',body:'Sprawd?my jeszcze limit odpowiedzialno?ci przed podpisem.'}],summary:{overall_score:41,language:'en',summary:'Umowa obejmuje płatności, wypowiedzenie i odpowiedzialność.',risks:[{title:'Długi termin płatności',severity:'medium',explanation:'Płatność po 60 dniach może obciążać cash flow.'},{title:'Ograniczona odpowiedzialność',severity:'high',explanation:'Wyłączenia mogą utrudnić dochodzenie roszczeń.'}],suggestions:[{title:'Skróć termin płatności',rationale:'Poprawia płynność.',proposed_text:'Payment terms shall be net 30 days.'}]},fragments:[{id:'a',page:1,text:'Payment terms are net 60 days from invoice date.'},{id:'b',page:2,text:'Either party may terminate with 90 days written notice.'}]},
-          {id:'demo-2',filename:'Supplier Agreement.pdf',page_count:2,shared_with:[],activity:[{type:'upload',label:'Document uploaded',detail:'File added and analyzed locally.'}],comments:[],summary:{overall_score:82,language:'en',summary:'Bez większych ryzyk.',risks:[],suggestions:[]},fragments:[{id:'c',page:1,text:'Payment terms are net 30 days.'},{id:'d',page:2,text:'Either party may terminate with 30 days written notice.'}]}
+          {id:'demo-1',filename:'Master Services Agreement.pdf',page_count:3,shared_with:['anna@firma.pl'],review_status:'in_review',activity:[{type:'upload',label:'Document uploaded',detail:'File added and analyzed locally.'}],comments:[{author:'anna@firma.pl',body:'Sprawd?my jeszcze limit odpowiedzialno?ci przed podpisem.'}],summary:{overall_score:41,language:'en',summary:'Umowa obejmuje płatności, wypowiedzenie i odpowiedzialność.',risks:[{title:'Długi termin płatności',severity:'medium',explanation:'Płatność po 60 dniach może obciążać cash flow.'},{title:'Ograniczona odpowiedzialność',severity:'high',explanation:'Wyłączenia mogą utrudnić dochodzenie roszczeń.'}],suggestions:[{title:'Skróć termin płatności',rationale:'Poprawia płynność.',proposed_text:'Payment terms shall be net 30 days.'}]},fragments:[{id:'a',page:1,text:'Payment terms are net 60 days from invoice date.'},{id:'b',page:2,text:'Either party may terminate with 90 days written notice.'}]},
+          {id:'demo-2',filename:'Supplier Agreement.pdf',page_count:2,shared_with:[],review_status:'approved',activity:[{type:'upload',label:'Document uploaded',detail:'File added and analyzed locally.'}],comments:[],summary:{overall_score:82,language:'en',summary:'Bez większych ryzyk.',risks:[],suggestions:[]},fragments:[{id:'c',page:1,text:'Payment terms are net 30 days.'},{id:'d',page:2,text:'Either party may terminate with 30 days written notice.'}]}
         ];
       }
       function current() { return documents.find(d => d.id === selectedId); }
@@ -131,11 +131,20 @@
             </div>
             <div class="stack">
               <div class="panel"><h3>AI Summary</h3><p>${d.summary.summary}</p></div>
+              <div class="panel"><h3>Review status</h3><p><span class="tag">${statusLabel(d.review_status)}</span></p><button data-status="draft" class="statusButton">Draft</button><button data-status="in_review" class="statusButton">In review</button><button data-status="approved" class="statusButton">Approved</button></div>
               <div class="panel"><h3>Risk score · ${d.summary.overall_score}/100</h3>${d.summary.risks.map(r=>`<div class="risk"><strong>${r.title}</strong> <span class="tag">${r.severity}</span><p>${r.explanation}</p></div>`).join('') || '<p class="muted">Brak ryzyk.</p>'}</div>
               <div class="panel"><h3>Ask this contract</h3><div id="messages"></div><textarea id="question" placeholder="Np. jaki jest termin wypowiedzenia?"></textarea><button id="ask">Ask</button><p id="answer" class="fragment">Zadaj pytanie o dokument.</p><div id="citations"></div></div>
               <div class="panel"><h3>Share document</h3><input id="shareEmail" placeholder="email współpracownika"/><button id="share">Share</button><p class="muted">${d.shared_with.join(', ') || 'Jeszcze nikomu nie udostępniono.'}</p></div>
             </div>
           </div>`;
+        document.querySelectorAll('.statusButton').forEach(button => button.onclick = async () => {
+          const status = button.dataset.status;
+          if (d.id.startsWith('demo-')) {
+            d.review_status = status;
+            d.activity.unshift({type:'status',label:'Review status updated',detail:`Status changed to ${status}.`});
+          } else Object.assign(d, await api(`/api/documents/${d.id}/status`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})}));
+          renderDocument();
+        });
         $('ask').onclick = async () => {
           const currentQuestion = $('question').value.trim();
           if (!currentQuestion) return;
@@ -241,6 +250,9 @@
         return document.comments?.length
           ? document.comments.map(comment => `<div class="fragment"><strong>${comment.author}</strong><p>${comment.body}</p></div>`).join('')
           : '<p class="muted">No comments yet.</p>';
+      }
+      function statusLabel(status) {
+        return ({draft:'Draft',in_review:'In review',approved:'Approved'})[status] || status;
       }
       function downloadMarkdown(report) {
         const blob = new Blob([report.markdown], {type:'text/markdown;charset=utf-8'});

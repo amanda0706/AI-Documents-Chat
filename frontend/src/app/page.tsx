@@ -7,6 +7,7 @@ const demoDocuments = [
     filename: "Master Services Agreement.pdf",
     page_count: 3,
     shared_with: ["anna@firma.pl"],
+    review_status: "in_review",
     activity: [
       {
         type: "upload",
@@ -72,6 +73,7 @@ const demoDocuments = [
     filename: "Supplier Agreement.pdf",
     page_count: 2,
     shared_with: [],
+    review_status: "approved",
     activity: [
       {
         type: "upload",

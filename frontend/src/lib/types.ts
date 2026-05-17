@@ -34,6 +34,7 @@ export type DocumentItem = {
   filename: string;
   page_count: number;
   shared_with: string[];
+  review_status: "draft" | "in_review" | "approved";
   activity: {
     type: string;
     label: string;

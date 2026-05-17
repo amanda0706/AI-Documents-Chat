@@ -37,6 +37,7 @@ class DocumentDetail(BaseModel):
     filename: str
     page_count: int
     shared_with: list[str]
+    review_status: str = "draft"
     activity: list["ActivityItem"] = Field(default_factory=list)
     comments: list["CommentItem"] = Field(default_factory=list)
     summary: DocumentSummary
@@ -99,6 +100,10 @@ class ShareRequest(BaseModel):
 class CommentRequest(BaseModel):
     author: str
     body: str
+
+
+class ReviewStatusRequest(BaseModel):
+    status: str
 
 
 class DashboardStats(BaseModel):

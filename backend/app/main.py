@@ -25,10 +25,20 @@ from .models import (
     QuestionRequest,
     QuestionResponse,
     ReportResponse,
+    ReviewStatusRequest,
     SearchResult,
     ShareRequest,
 )
-from .store import UPLOADS_DIR, add_activity, add_comment, create_document, get_document, list_documents, share_document
+from .store import (
+    UPLOADS_DIR,
+    add_activity,
+    add_comment,
+    create_document,
+    get_document,
+    list_documents,
+    share_document,
+    update_review_status,
+)
 
 
 app = FastAPI(title="ClausePilot API")
@@ -147,6 +157,16 @@ def share(doc_id: str, payload: ShareRequest):
 @app.post("/documents/{doc_id}/comments")
 def comment(doc_id: str, payload: CommentRequest):
     updated = add_comment(doc_id, CommentItem(author=payload.author, body=payload.body))
+    if not updated:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return updated
+
+
+@app.post("/documents/{doc_id}/status")
+def update_status(doc_id: str, payload: ReviewStatusRequest):
+    if payload.status not in {"draft", "in_review", "approved"}:
+        raise HTTPException(status_code=400, detail="Invalid review status")
+    updated = update_review_status(doc_id, payload.status)
     if not updated:
         raise HTTPException(status_code=404, detail="Document not found")
     return updated

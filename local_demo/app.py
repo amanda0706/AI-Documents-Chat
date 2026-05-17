@@ -19,7 +19,7 @@ from app.analyzer import (  # noqa: E402
     summarize,
 )
 from app.models import ActivityItem, CommentItem, DocumentSummary  # noqa: E402
-from app.store import add_activity, add_comment, create_document, get_document, list_documents, share_document  # noqa: E402
+from app.store import add_activity, add_comment, create_document, get_document, list_documents, share_document, update_review_status  # noqa: E402
 
 
 app = Flask(__name__)
@@ -109,6 +109,17 @@ def share(doc_id: str):
 def comment(doc_id: str):
     payload = request.get_json(force=True)
     updated = add_comment(doc_id, CommentItem(author=payload["author"], body=payload["body"]))
+    if not updated:
+        return jsonify(error="Document not found"), 404
+    return jsonify(updated.model_dump())
+
+
+@app.post("/api/documents/<doc_id>/status")
+def update_status(doc_id: str):
+    payload = request.get_json(force=True)
+    if payload["status"] not in {"draft", "in_review", "approved"}:
+        return jsonify(error="Invalid review status"), 400
+    updated = update_review_status(doc_id, payload["status"])
     if not updated:
         return jsonify(error="Document not found"), 404
     return jsonify(updated.model_dump())

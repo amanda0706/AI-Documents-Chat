@@ -24,6 +24,12 @@ const severityStyles = {
   high: "bg-rose-50 text-rose-700",
 };
 
+const reviewStatusLabels = {
+  draft: "Draft",
+  in_review: "In review",
+  approved: "Approved",
+};
+
 const riskMarkers: Record<string, string[]> = {
   payment: ["net 60", "net 90", "within sixty", "within ninety"],
   termination: ["90 days", "terminate for convenience"],
@@ -293,6 +299,39 @@ ${passageLines}`,
     setCommentBody("");
   }
 
+  async function updateReviewStatus(status: DocumentItem["review_status"]) {
+    if (!selected) return;
+    if (!selected.id.startsWith("demo-")) {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/documents/${selected.id}/status`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
+      if (response.ok) {
+        const updated = await response.json();
+        setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      }
+      return;
+    }
+    setItems((current) =>
+      current.map((item) =>
+        item.id === selected.id
+          ? {
+              ...item,
+              review_status: status,
+              activity: [
+                { type: "status", label: "Review status updated", detail: `Status changed to ${status}.` },
+                ...item.activity,
+              ],
+            }
+          : item,
+      ),
+    );
+  }
+
   function downloadReport() {
     if (!report) return;
     const blob = new Blob([report.markdown], { type: "text/markdown;charset=utf-8" });
@@ -451,6 +490,7 @@ ${passageLines}`,
               commentBody={commentBody}
               setCommentBody={setCommentBody}
               addComment={addComment}
+              updateReviewStatus={updateReviewStatus}
               generateReport={generateReport}
               downloadReport={downloadReport}
               report={report}
@@ -527,6 +567,7 @@ function DocumentWorkspace(props: {
   commentBody: string;
   setCommentBody: (value: string) => void;
   addComment: () => void;
+  updateReviewStatus: (status: DocumentItem["review_status"]) => void;
   generateReport: () => void;
   downloadReport: () => void;
   report: ReportResult | null;
@@ -555,6 +596,24 @@ function DocumentWorkspace(props: {
       <aside className="space-y-5">
         <Panel title="AI Summary">
           <p className="leading-7 text-slate-700">{selected.summary.summary}</p>
+        </Panel>
+        <Panel title="Review status">
+          <div className="mb-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+            {reviewStatusLabels[selected.review_status]}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {(["draft", "in_review", "approved"] as const).map((status) => (
+              <button
+                key={status}
+                onClick={() => props.updateReviewStatus(status)}
+                className={`rounded-2xl px-3 py-2 text-xs font-medium ${
+                  selected.review_status === status ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-600"
+                }`}
+              >
+                {reviewStatusLabels[status]}
+              </button>
+            ))}
+          </div>
         </Panel>
         <Panel title={`Risk score · ${selected.summary.overall_score}/100`}>
           <div className="space-y-3">
