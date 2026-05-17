@@ -111,3 +111,5 @@ class DashboardStats(BaseModel):
     high_risk_documents: int
     average_score: int
     shared_documents: int
+    pending_review_documents: int
+    approved_documents: int

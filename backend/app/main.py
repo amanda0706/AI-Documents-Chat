@@ -65,11 +65,15 @@ def dashboard():
     )
     average = round(sum(document.summary.overall_score for document in documents) / total) if total else 0
     shared = sum(1 for document in documents if document.shared_with)
+    pending_review = sum(1 for document in documents if document.review_status == "in_review")
+    approved = sum(1 for document in documents if document.review_status == "approved")
     return DashboardStats(
         total_documents=total,
         high_risk_documents=high_risk,
         average_score=average,
         shared_documents=shared,
+        pending_review_documents=pending_review,
+        approved_documents=approved,
     )
 
 

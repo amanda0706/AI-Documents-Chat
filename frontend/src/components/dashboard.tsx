@@ -514,14 +514,20 @@ ${passageLines}`,
 }
 
 function Overview({ stats, documents }: { stats: DashboardStats; documents: DocumentItem[] }) {
+  const reviewQueue = documents
+    .filter((document) => document.review_status !== "approved")
+    .sort((left, right) => left.summary.overall_score - right.summary.overall_score);
+
   return (
     <>
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-6 gap-5">
         {[
           ["Documents", stats.total_documents],
           ["High risk", stats.high_risk_documents],
           ["Average score", stats.average_score],
           ["Shared", stats.shared_documents],
+          ["In review", stats.pending_review_documents],
+          ["Approved", stats.approved_documents],
         ].map(([label, value]) => (
           <div key={label} className="rounded-[28px] bg-white p-5 shadow-panel">
             <p className="text-sm text-slate-400">{label}</p>
@@ -544,6 +550,27 @@ function Overview({ stats, documents }: { stats: DashboardStats; documents: Docu
               </div>
             </div>
           ))}
+        </div>
+      </div>
+      <div className="rounded-[28px] bg-white p-6 shadow-panel">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Review queue</h2>
+          <span className="text-sm text-slate-400">{reviewQueue.length} awaiting attention</span>
+        </div>
+        <div className="mt-5 space-y-3">
+          {reviewQueue.length ? reviewQueue.map((document) => (
+            <div key={document.id} className="flex items-center justify-between rounded-2xl bg-slate-50 p-4">
+              <div>
+                <div className="font-medium">{document.filename}</div>
+                <div className="text-sm text-slate-500">
+                  {reviewStatusLabels[document.review_status]} · score {document.summary.overall_score}
+                </div>
+              </div>
+              <div className="text-sm text-slate-500">
+                {document.summary.risks.length} risks
+              </div>
+            </div>
+          )) : <p className="text-sm text-slate-500">Everything is approved.</p>}
         </div>
       </div>
     </>

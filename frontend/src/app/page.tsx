@@ -103,6 +103,8 @@ const demoStats = {
   high_risk_documents: 1,
   average_score: 62,
   shared_documents: 1,
+  pending_review_documents: 1,
+  approved_documents: 1,
 };
 
 export default async function Home() {

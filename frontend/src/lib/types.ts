@@ -53,6 +53,8 @@ export type DashboardStats = {
   high_risk_documents: number;
   average_score: number;
   shared_documents: number;
+  pending_review_documents: number;
+  approved_documents: number;
 };
 
 export type ComparisonResult = {

@@ -105,12 +105,17 @@
         const high = documents.filter(d => d.summary.risks.some(r => r.severity === 'high')).length;
         const avg = Math.round(documents.reduce((a,d)=>a+d.summary.overall_score,0)/documents.length);
         const shared = documents.filter(d => d.shared_with.length).length;
+        const inReview = documents.filter(d => d.review_status === 'in_review').length;
+        const approved = documents.filter(d => d.review_status === 'approved').length;
+        const reviewQueue = documents.filter(d => d.review_status !== 'approved').sort((a,b)=>a.summary.overall_score-b.summary.overall_score);
         $('overview').innerHTML = `
           <div class="stats">
             <div class="panel stat">Documents<strong>${documents.length}</strong></div>
             <div class="panel stat">High risk<strong>${high}</strong></div>
             <div class="panel stat">Average score<strong>${avg}</strong></div>
             <div class="panel stat">Shared<strong>${shared}</strong></div>
+            <div class="panel stat">In review<strong>${inReview}</strong></div>
+            <div class="panel stat">Approved<strong>${approved}</strong></div>
           </div>
           <div class="panel">
             <h2>Portfolio-ready product dashboard</h2>

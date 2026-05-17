@@ -16,6 +16,8 @@ export async function fetchDashboard(): Promise<DashboardStats> {
       high_risk_documents: 0,
       average_score: 0,
       shared_documents: 0,
+      pending_review_documents: 0,
+      approved_documents: 0,
     };
   }
   return response.json();
