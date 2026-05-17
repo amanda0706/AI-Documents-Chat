@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from uuid import uuid4
 
-from .models import ActivityItem, DocumentDetail, DocumentFragment, DocumentSummary
+from .models import ActivityItem, CommentItem, DocumentDetail, DocumentFragment, DocumentSummary
 
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -48,6 +48,7 @@ def create_document(filename: str, page_texts: list[str], summary: DocumentSumma
                 detail="File added and analyzed locally.",
             )
         ],
+        comments=[],
         summary=summary,
         fragments=fragments,
     )
@@ -92,6 +93,27 @@ def share_document(doc_id: str, email: str) -> DocumentDetail | None:
             type="share",
             label="Document shared",
             detail=f"Shared with {email}.",
+        ).model_dump(),
+    )
+    documents[doc_id] = payload
+    save_all(documents)
+    return DocumentDetail(**payload)
+
+
+def add_comment(doc_id: str, comment: CommentItem) -> DocumentDetail | None:
+    documents = load_all()
+    payload = documents.get(doc_id)
+    if not payload:
+        return None
+    payload.setdefault("comments", [])
+    payload["comments"].insert(0, comment.model_dump())
+    payload.setdefault("activity", [])
+    payload["activity"].insert(
+        0,
+        ActivityItem(
+            type="comment",
+            label="Comment added",
+            detail=comment.body,
         ).model_dump(),
     )
     documents[doc_id] = payload

@@ -16,6 +16,8 @@ from .analyzer import (
 )
 from .models import (
     ActivityItem,
+    CommentItem,
+    CommentRequest,
     CompareRequest,
     ComparisonResponse,
     DashboardStats,
@@ -26,7 +28,7 @@ from .models import (
     SearchResult,
     ShareRequest,
 )
-from .store import UPLOADS_DIR, add_activity, create_document, get_document, list_documents, share_document
+from .store import UPLOADS_DIR, add_activity, add_comment, create_document, get_document, list_documents, share_document
 
 
 app = FastAPI(title="ClausePilot API")
@@ -137,6 +139,14 @@ def ask_document(doc_id: str, payload: QuestionRequest):
 @app.post("/documents/{doc_id}/share")
 def share(doc_id: str, payload: ShareRequest):
     updated = share_document(doc_id, payload.email)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return updated
+
+
+@app.post("/documents/{doc_id}/comments")
+def comment(doc_id: str, payload: CommentRequest):
+    updated = add_comment(doc_id, CommentItem(author=payload.author, body=payload.body))
     if not updated:
         raise HTTPException(status_code=404, detail="Document not found")
     return updated

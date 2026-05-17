@@ -38,6 +38,7 @@ class DocumentDetail(BaseModel):
     page_count: int
     shared_with: list[str]
     activity: list["ActivityItem"] = Field(default_factory=list)
+    comments: list["CommentItem"] = Field(default_factory=list)
     summary: DocumentSummary
     fragments: list[DocumentFragment]
 
@@ -60,6 +61,11 @@ class ActivityItem(BaseModel):
     type: str
     label: str
     detail: str
+
+
+class CommentItem(BaseModel):
+    author: str
+    body: str
 
 
 class CompareRequest(BaseModel):
@@ -88,6 +94,11 @@ class ReportResponse(BaseModel):
 
 class ShareRequest(BaseModel):
     email: str
+
+
+class CommentRequest(BaseModel):
+    author: str
+    body: str
 
 
 class DashboardStats(BaseModel):

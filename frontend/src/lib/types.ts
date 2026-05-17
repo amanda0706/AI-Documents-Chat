@@ -39,6 +39,10 @@ export type DocumentItem = {
     label: string;
     detail: string;
   }[];
+  comments: {
+    author: string;
+    body: string;
+  }[];
   summary: DocumentSummary;
   fragments: Fragment[];
 };

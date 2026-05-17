@@ -75,8 +75,8 @@
       }
       function demoDocs() {
         return [
-          {id:'demo-1',filename:'Master Services Agreement.pdf',page_count:3,shared_with:['anna@firma.pl'],activity:[{type:'upload',label:'Document uploaded',detail:'File added and analyzed locally.'}],summary:{overall_score:41,language:'en',summary:'Umowa obejmuje płatności, wypowiedzenie i odpowiedzialność.',risks:[{title:'Długi termin płatności',severity:'medium',explanation:'Płatność po 60 dniach może obciążać cash flow.'},{title:'Ograniczona odpowiedzialność',severity:'high',explanation:'Wyłączenia mogą utrudnić dochodzenie roszczeń.'}],suggestions:[{title:'Skróć termin płatności',rationale:'Poprawia płynność.',proposed_text:'Payment terms shall be net 30 days.'}]},fragments:[{id:'a',page:1,text:'Payment terms are net 60 days from invoice date.'},{id:'b',page:2,text:'Either party may terminate with 90 days written notice.'}]},
-          {id:'demo-2',filename:'Supplier Agreement.pdf',page_count:2,shared_with:[],activity:[{type:'upload',label:'Document uploaded',detail:'File added and analyzed locally.'}],summary:{overall_score:82,language:'en',summary:'Bez większych ryzyk.',risks:[],suggestions:[]},fragments:[{id:'c',page:1,text:'Payment terms are net 30 days.'},{id:'d',page:2,text:'Either party may terminate with 30 days written notice.'}]}
+          {id:'demo-1',filename:'Master Services Agreement.pdf',page_count:3,shared_with:['anna@firma.pl'],activity:[{type:'upload',label:'Document uploaded',detail:'File added and analyzed locally.'}],comments:[{author:'anna@firma.pl',body:'Sprawd?my jeszcze limit odpowiedzialno?ci przed podpisem.'}],summary:{overall_score:41,language:'en',summary:'Umowa obejmuje płatności, wypowiedzenie i odpowiedzialność.',risks:[{title:'Długi termin płatności',severity:'medium',explanation:'Płatność po 60 dniach może obciążać cash flow.'},{title:'Ograniczona odpowiedzialność',severity:'high',explanation:'Wyłączenia mogą utrudnić dochodzenie roszczeń.'}],suggestions:[{title:'Skróć termin płatności',rationale:'Poprawia płynność.',proposed_text:'Payment terms shall be net 30 days.'}]},fragments:[{id:'a',page:1,text:'Payment terms are net 60 days from invoice date.'},{id:'b',page:2,text:'Either party may terminate with 90 days written notice.'}]},
+          {id:'demo-2',filename:'Supplier Agreement.pdf',page_count:2,shared_with:[],activity:[{type:'upload',label:'Document uploaded',detail:'File added and analyzed locally.'}],comments:[],summary:{overall_score:82,language:'en',summary:'Bez większych ryzyk.',risks:[],suggestions:[]},fragments:[{id:'c',page:1,text:'Payment terms are net 30 days.'},{id:'d',page:2,text:'Either party may terminate with 30 days written notice.'}]}
         ];
       }
       function current() { return documents.find(d => d.id === selectedId); }
@@ -157,6 +157,15 @@
           $('question').value = '';
           renderMessages();
         };
+        $('addComment').onclick = async () => {
+          const body = $('commentBody').value.trim();
+          if (!body) return;
+          if (d.id.startsWith('demo-')) {
+            d.comments.unshift({author:'reviewer@local', body});
+            d.activity.unshift({type:'comment',label:'Comment added',detail:body});
+          } else Object.assign(d, await api(`/api/documents/${d.id}/comments`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({author:'reviewer@local',body})}));
+          renderDocument();
+        };
         $('share').onclick = async () => {
           const email = $('shareEmail').value;
           if (!email) return;
@@ -227,6 +236,11 @@
         return document.activity?.length
           ? document.activity.slice(0,5).map(item => `<div class="fragment"><strong>${item.label}</strong><p>${item.detail}</p></div>`).join('')
           : '<p class="muted">No activity yet.</p>';
+      }
+      function commentMarkup(document) {
+        return document.comments?.length
+          ? document.comments.map(comment => `<div class="fragment"><strong>${comment.author}</strong><p>${comment.body}</p></div>`).join('')
+          : '<p class="muted">No comments yet.</p>';
       }
       function downloadMarkdown(report) {
         const blob = new Blob([report.markdown], {type:'text/markdown;charset=utf-8'});

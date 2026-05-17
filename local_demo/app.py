@@ -18,8 +18,8 @@ from app.analyzer import (  # noqa: E402
     overall_score,
     summarize,
 )
-from app.models import ActivityItem, DocumentSummary  # noqa: E402
-from app.store import add_activity, create_document, get_document, list_documents, share_document  # noqa: E402
+from app.models import ActivityItem, CommentItem, DocumentSummary  # noqa: E402
+from app.store import add_activity, add_comment, create_document, get_document, list_documents, share_document  # noqa: E402
 
 
 app = Flask(__name__)
@@ -100,6 +100,15 @@ def ask(doc_id: str):
 def share(doc_id: str):
     payload = request.get_json(force=True)
     updated = share_document(doc_id, payload["email"])
+    if not updated:
+        return jsonify(error="Document not found"), 404
+    return jsonify(updated.model_dump())
+
+
+@app.post("/api/documents/<doc_id>/comments")
+def comment(doc_id: str):
+    payload = request.get_json(force=True)
+    updated = add_comment(doc_id, CommentItem(author=payload["author"], body=payload["body"]))
     if not updated:
         return jsonify(error="Document not found"), 404
     return jsonify(updated.model_dump())

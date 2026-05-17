@@ -14,6 +14,12 @@ const demoDocuments = [
         detail: "File added and analyzed locally.",
       },
     ],
+    comments: [
+      {
+        author: "anna@firma.pl",
+        body: "Sprawdźmy jeszcze limit odpowiedzialności przed podpisem.",
+      },
+    ],
     summary: {
       title: "Master Services Agreement.pdf",
       summary:
@@ -73,6 +79,7 @@ const demoDocuments = [
         detail: "File added and analyzed locally.",
       },
     ],
+    comments: [],
     summary: {
       title: "Supplier Agreement.pdf",
       summary: "Alternatywna wersja umowy z krótszym terminem płatności i mniejszym ryzykiem.",

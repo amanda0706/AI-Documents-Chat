@@ -44,6 +44,7 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [query, setQuery] = useState("");
   const [shareEmail, setShareEmail] = useState("");
+  const [commentBody, setCommentBody] = useState("");
   const [compareId, setCompareId] = useState(documents[1]?.id ?? documents[0]?.id ?? "");
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
   const [report, setReport] = useState<ReportResult | null>(null);
@@ -258,6 +259,40 @@ ${passageLines}`,
     });
   }
 
+  async function addComment() {
+    if (!selected || !commentBody.trim()) return;
+    if (!selected.id.startsWith("demo-")) {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/documents/${selected.id}/comments`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ author: email || "reviewer@local", body: commentBody }),
+        },
+      );
+      if (response.ok) {
+        const updated = await response.json();
+        setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      }
+    } else {
+      setItems((current) =>
+        current.map((item) =>
+          item.id === selected.id
+            ? {
+                ...item,
+                comments: [{ author: email || "reviewer@local", body: commentBody }, ...item.comments],
+                activity: [
+                  { type: "comment", label: "Comment added", detail: commentBody },
+                  ...item.activity,
+                ],
+              }
+            : item,
+        ),
+      );
+    }
+    setCommentBody("");
+  }
+
   function downloadReport() {
     if (!report) return;
     const blob = new Blob([report.markdown], { type: "text/markdown;charset=utf-8" });
@@ -413,6 +448,9 @@ ${passageLines}`,
               shareEmail={shareEmail}
               setShareEmail={setShareEmail}
               shareDocument={shareDocument}
+              commentBody={commentBody}
+              setCommentBody={setCommentBody}
+              addComment={addComment}
               generateReport={generateReport}
               downloadReport={downloadReport}
               report={report}
@@ -486,6 +524,9 @@ function DocumentWorkspace(props: {
   shareEmail: string;
   setShareEmail: (value: string) => void;
   shareDocument: () => void;
+  commentBody: string;
+  setCommentBody: (value: string) => void;
+  addComment: () => void;
   generateReport: () => void;
   downloadReport: () => void;
   report: ReportResult | null;
@@ -573,6 +614,20 @@ function DocumentWorkspace(props: {
               </pre>
             </>
           )}
+        </Panel>
+        <Panel title="Review comments">
+          <textarea value={props.commentBody} onChange={(event) => props.setCommentBody(event.target.value)} placeholder="Dodaj komentarz do umowy..." className="min-h-24 w-full rounded-2xl border border-line p-4 text-sm outline-none" />
+          <button onClick={props.addComment} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium">
+            Add comment
+          </button>
+          <div className="mt-4 space-y-3">
+            {selected.comments.length ? selected.comments.map((comment, index) => (
+              <div key={`${comment.author}-${index}`} className="rounded-2xl bg-slate-50 p-4 text-sm">
+                <div className="font-medium">{comment.author}</div>
+                <div className="mt-1 text-slate-600">{comment.body}</div>
+              </div>
+            )) : <p className="text-sm text-slate-500">No comments yet.</p>}
+          </div>
         </Panel>
         <Panel title="Activity">
           <div className="space-y-3">
