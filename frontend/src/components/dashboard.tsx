@@ -258,6 +258,17 @@ ${passageLines}`,
     });
   }
 
+  function downloadReport() {
+    if (!report) return;
+    const blob = new Blob([report.markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${report.filename.replace(/\.[^.]+$/, "")}-report.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   function addLocalActivity(documentId: string, activity: DocumentItem["activity"][number]) {
     setItems((current) =>
       current.map((item) =>
@@ -403,6 +414,7 @@ ${passageLines}`,
               setShareEmail={setShareEmail}
               shareDocument={shareDocument}
               generateReport={generateReport}
+              downloadReport={downloadReport}
               report={report}
             />
           )}
@@ -475,6 +487,7 @@ function DocumentWorkspace(props: {
   setShareEmail: (value: string) => void;
   shareDocument: () => void;
   generateReport: () => void;
+  downloadReport: () => void;
   report: ReportResult | null;
 }) {
   const { selected } = props;
@@ -551,9 +564,14 @@ function DocumentWorkspace(props: {
             Generate report
           </button>
           {props.report && (
-            <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-              {props.report.markdown}
-            </pre>
+            <>
+              <button onClick={props.downloadReport} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium">
+                Download .md file
+              </button>
+              <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                {props.report.markdown}
+              </pre>
+            </>
           )}
         </Panel>
         <Panel title="Activity">

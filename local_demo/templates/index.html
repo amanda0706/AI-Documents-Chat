@@ -170,6 +170,7 @@
         $('report').onclick = async () => {
           const res = d.id.startsWith('demo-') ? buildDemoReport(d) : await api(`/api/documents/${d.id}/report`);
           $('reportOutput').textContent = res.markdown;
+          $('downloadReport').onclick = () => downloadMarkdown(res);
         };
       }
       function renderCompare() {
@@ -226,6 +227,15 @@
         return document.activity?.length
           ? document.activity.slice(0,5).map(item => `<div class="fragment"><strong>${item.label}</strong><p>${item.detail}</p></div>`).join('')
           : '<p class="muted">No activity yet.</p>';
+      }
+      function downloadMarkdown(report) {
+        const blob = new Blob([report.markdown], {type:'text/markdown;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${report.filename.replace(/\.[^.]+$/, '')}-report.md`;
+        link.click();
+        URL.revokeObjectURL(url);
       }
       function riskBadge(document, fragment) {
         const markers = {
