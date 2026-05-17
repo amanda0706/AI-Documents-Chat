@@ -1,8 +1,27 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { compareDocuments, fetchReport } from "@/lib/api";
-import type { ComparisonResult, DashboardStats, DeadlineItem, DocumentItem, ReportResult, RiskItem } from "@/lib/types";
+import {
+  addDocumentComment,
+  askDocumentQuestion,
+  compareDocuments,
+  fetchReport,
+  saveDocumentMetadata,
+  shareDocument as shareDocumentRequest,
+  updateDocumentStatus,
+  uploadDocument as uploadDocumentRequest,
+} from "@/lib/api";
+import type {
+  ComparisonResult,
+  DashboardStats,
+  DeadlineItem,
+  DocumentItem,
+  MetadataDraft,
+  ReportResult,
+  ReviewStatus,
+  RiskItem,
+  RiskSeverity,
+} from "@/lib/types";
 
 type DashboardProps = {
   documents: DocumentItem[];
@@ -12,8 +31,8 @@ type DashboardProps = {
 };
 
 type View = "overview" | "document" | "compare" | "suggestions";
-type RiskFilter = "all" | "high" | "medium" | "low";
-type StatusFilter = "all" | DocumentItem["review_status"];
+type RiskFilter = "all" | RiskSeverity;
+type StatusFilter = "all" | ReviewStatus;
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
@@ -53,7 +72,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
   const [query, setQuery] = useState("");
   const [shareEmail, setShareEmail] = useState("");
   const [commentBody, setCommentBody] = useState("");
-  const [metadataDraft, setMetadataDraft] = useState({
+  const [metadataDraft, setMetadataDraft] = useState<MetadataDraft>({
     owner: documents[0]?.owner ?? "",
     counterparty: documents[0]?.counterparty ?? "",
     contract_type: documents[0]?.contract_type ?? "",
@@ -114,16 +133,8 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
     const currentQuestion = question.trim();
     setMessages((current) => [...current, { role: "user", content: currentQuestion }]);
     if (!selected.id.startsWith("demo-")) {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/documents/${selected.id}/ask`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question }),
-        },
-      );
-      if (response.ok) {
-        const payload = await response.json();
+      const payload = await askDocumentQuestion(selected.id, currentQuestion);
+      if (payload) {
         setAnswer(payload.answer);
         setCitations(payload.citations ?? []);
         setMessages((current) => [
@@ -166,14 +177,8 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
 
   async function uploadDocument(file?: File) {
     if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/documents/upload`,
-      { method: "POST", body: formData },
-    );
-    if (!response.ok) return;
-    const created = await response.json();
+    const created = await uploadDocumentRequest(file);
+    if (!created) return;
     setItems((current) => [created, ...current]);
     setSelectedId(created.id);
     syncMetadataDraft(created);
@@ -183,16 +188,8 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
   async function shareDocument() {
     if (!selected || !shareEmail.trim()) return;
     if (!selected.id.startsWith("demo-")) {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/documents/${selected.id}/share`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: shareEmail }),
-        },
-      );
-      if (response.ok) {
-        const updated = await response.json();
+      const updated = await shareDocumentRequest(selected.id, shareEmail);
+      if (updated) {
         setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       }
     } else {
@@ -302,16 +299,8 @@ ${passageLines}`,
   async function addComment() {
     if (!selected || !commentBody.trim()) return;
     if (!selected.id.startsWith("demo-")) {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/documents/${selected.id}/comments`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ author: email || "reviewer@local", body: commentBody }),
-        },
-      );
-      if (response.ok) {
-        const updated = await response.json();
+      const updated = await addDocumentComment(selected.id, email || "reviewer@local", commentBody);
+      if (updated) {
         setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       }
     } else {
@@ -333,19 +322,11 @@ ${passageLines}`,
     setCommentBody("");
   }
 
-  async function updateReviewStatus(status: DocumentItem["review_status"]) {
+  async function updateReviewStatus(status: ReviewStatus) {
     if (!selected) return;
     if (!selected.id.startsWith("demo-")) {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/documents/${selected.id}/status`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        },
-      );
-      if (response.ok) {
-        const updated = await response.json();
+      const updated = await updateDocumentStatus(selected.id, status);
+      if (updated) {
         setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       }
       return;
@@ -369,16 +350,8 @@ ${passageLines}`,
   async function saveMetadata() {
     if (!selected) return;
     if (!selected.id.startsWith("demo-")) {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/documents/${selected.id}/metadata`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(metadataDraft),
-        },
-      );
-      if (response.ok) {
-        const updated = await response.json();
+      const updated = await saveDocumentMetadata(selected.id, metadataDraft);
+      if (updated) {
         setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       }
       return;
@@ -762,22 +735,8 @@ function DocumentWorkspace(props: {
   setCommentBody: (value: string) => void;
   addComment: () => void;
   updateReviewStatus: (status: DocumentItem["review_status"]) => void;
-  metadataDraft: {
-    owner: string;
-    counterparty: string;
-    contract_type: string;
-    effective_date: string;
-    expiry_date: string;
-    renewal_date: string;
-  };
-  setMetadataDraft: (value: {
-    owner: string;
-    counterparty: string;
-    contract_type: string;
-    effective_date: string;
-    expiry_date: string;
-    renewal_date: string;
-  }) => void;
+  metadataDraft: MetadataDraft;
+  setMetadataDraft: (value: MetadataDraft) => void;
   saveMetadata: () => void;
   generateReport: () => void;
   downloadReport: () => void;

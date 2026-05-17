@@ -1,4 +1,13 @@
-import type { ComparisonResult, DashboardStats, DeadlineItem, DocumentItem, ReportResult } from "./types";
+import type {
+  ComparisonResult,
+  DashboardStats,
+  DeadlineItem,
+  DocumentItem,
+  MetadataDraft,
+  QuestionResult,
+  ReportResult,
+  ReviewStatus,
+} from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -44,5 +53,76 @@ export async function fetchReport(documentId: string): Promise<ReportResult | nu
 export async function fetchDeadlines(): Promise<DeadlineItem[]> {
   const response = await fetch(`${API_URL}/deadlines`, { cache: "no-store" });
   if (!response.ok) return [];
+  return response.json();
+}
+
+export async function askDocumentQuestion(documentId: string, question: string): Promise<QuestionResult | null> {
+  const response = await fetch(`${API_URL}/documents/${documentId}/ask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+export async function uploadDocument(file: File): Promise<DocumentItem | null> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(`${API_URL}/documents/upload`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+export async function shareDocument(documentId: string, email: string): Promise<DocumentItem | null> {
+  const response = await fetch(`${API_URL}/documents/${documentId}/share`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+export async function addDocumentComment(
+  documentId: string,
+  author: string,
+  body: string,
+): Promise<DocumentItem | null> {
+  const response = await fetch(`${API_URL}/documents/${documentId}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ author, body }),
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+export async function updateDocumentStatus(
+  documentId: string,
+  status: ReviewStatus,
+): Promise<DocumentItem | null> {
+  const response = await fetch(`${API_URL}/documents/${documentId}/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+export async function saveDocumentMetadata(
+  documentId: string,
+  metadata: MetadataDraft,
+): Promise<DocumentItem | null> {
+  const response = await fetch(`${API_URL}/documents/${documentId}/metadata`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(metadata),
+  });
+  if (!response.ok) return null;
   return response.json();
 }

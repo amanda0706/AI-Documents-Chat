@@ -1,3 +1,6 @@
+export type RiskSeverity = "low" | "medium" | "high";
+export type ReviewStatus = "draft" | "in_review" | "approved";
+
 export type Fragment = {
   id: string;
   page: number;
@@ -6,7 +9,7 @@ export type Fragment = {
 
 export type RiskItem = {
   category: string;
-  severity: "low" | "medium" | "high";
+  severity: RiskSeverity;
   title: string;
   explanation: string;
   recommendation: string;
@@ -40,7 +43,7 @@ export type DocumentItem = {
   effective_date: string;
   expiry_date: string;
   renewal_date: string;
-  review_status: "draft" | "in_review" | "approved";
+  review_status: ReviewStatus;
   activity: {
     type: string;
     label: string;
@@ -52,6 +55,16 @@ export type DocumentItem = {
   }[];
   summary: DocumentSummary;
   fragments: Fragment[];
+};
+
+export type MetadataDraft = Pick<
+  DocumentItem,
+  "owner" | "counterparty" | "contract_type" | "effective_date" | "expiry_date" | "renewal_date"
+>;
+
+export type QuestionResult = {
+  answer: string;
+  citations: Fragment[];
 };
 
 export type DashboardStats = {
