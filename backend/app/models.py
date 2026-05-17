@@ -1,4 +1,19 @@
-from pydantic import BaseModel, Field
+from datetime import date
+from enum import StrEnum
+
+from pydantic import BaseModel, Field, field_validator
+
+
+class RiskSeverity(StrEnum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
+class ReviewStatus(StrEnum):
+    draft = "draft"
+    in_review = "in_review"
+    approved = "approved"
 
 
 class DocumentFragment(BaseModel):
@@ -9,7 +24,7 @@ class DocumentFragment(BaseModel):
 
 class RiskItem(BaseModel):
     category: str
-    severity: str
+    severity: RiskSeverity
     title: str
     explanation: str
     recommendation: str
@@ -43,7 +58,7 @@ class DocumentDetail(BaseModel):
     effective_date: str = ""
     expiry_date: str = ""
     renewal_date: str = ""
-    review_status: str = "draft"
+    review_status: ReviewStatus = ReviewStatus.draft
     activity: list["ActivityItem"] = Field(default_factory=list)
     comments: list["CommentItem"] = Field(default_factory=list)
     summary: DocumentSummary
@@ -109,7 +124,7 @@ class CommentRequest(BaseModel):
 
 
 class ReviewStatusRequest(BaseModel):
-    status: str
+    status: ReviewStatus
 
 
 class MetadataRequest(BaseModel):
@@ -119,6 +134,16 @@ class MetadataRequest(BaseModel):
     effective_date: str = ""
     expiry_date: str = ""
     renewal_date: str = ""
+
+    @field_validator("effective_date", "expiry_date", "renewal_date")
+    @classmethod
+    def validate_iso_dates(cls, value: str) -> str:
+        if value:
+            try:
+                date.fromisoformat(value)
+            except ValueError as exc:
+                raise ValueError("Dates must use YYYY-MM-DD format") from exc
+        return value
 
 
 class DashboardStats(BaseModel):

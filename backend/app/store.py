@@ -135,7 +135,7 @@ def update_review_status(doc_id: str, status: str) -> DocumentDetail | None:
     payload = documents.get(doc_id)
     if not payload:
         return None
-    payload["review_status"] = status
+    payload["review_status"] = str(status)
     payload.setdefault("activity", [])
     payload["activity"].insert(
         0,

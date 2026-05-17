@@ -20,6 +20,7 @@ FastAPI backend
 - Analysis runs through a provider interface.
 - The active provider is deterministic, local, and explainable.
 - Provider selection is configuration-driven through `ANALYSIS_PROVIDER`.
+- Core API payloads use validated enums and date-shaped metadata fields.
 
 ## Future mode
 

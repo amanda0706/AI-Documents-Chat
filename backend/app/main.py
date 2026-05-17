@@ -143,8 +143,6 @@ def comment(doc_id: str, payload: CommentRequest):
 
 @app.post("/documents/{doc_id}/status")
 def update_status(doc_id: str, payload: ReviewStatusRequest):
-    if payload.status not in {"draft", "in_review", "approved"}:
-        raise HTTPException(status_code=400, detail="Invalid review status")
     updated = update_review_status(doc_id, payload.status)
     if not updated:
         raise HTTPException(status_code=404, detail="Document not found")
