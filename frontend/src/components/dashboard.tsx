@@ -12,6 +12,7 @@ type DashboardProps = {
 
 type View = "overview" | "document" | "compare" | "suggestions";
 type RiskFilter = "all" | "high" | "medium" | "low";
+type StatusFilter = "all" | DocumentItem["review_status"];
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
@@ -55,13 +56,18 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
   const [report, setReport] = useState<ReportResult | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const visibleDocuments = useMemo(() => {
-    if (riskFilter === "all") return items;
-    return items.filter((document) =>
-      document.summary.risks.some((risk) => risk.severity === riskFilter),
-    );
-  }, [items, riskFilter]);
+    return items.filter((document) => {
+      const matchesRisk =
+        riskFilter === "all" ||
+        document.summary.risks.some((risk) => risk.severity === riskFilter);
+      const matchesStatus =
+        statusFilter === "all" || document.review_status === statusFilter;
+      return matchesRisk && matchesStatus;
+    });
+  }, [items, riskFilter, statusFilter]);
 
   const selected = useMemo(
     () => visibleDocuments.find((document) => document.id === selectedId) ?? visibleDocuments[0],
@@ -627,6 +633,24 @@ function DocumentWorkspace(props: {
         <Panel title="Review status">
           <div className="mb-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
             {reviewStatusLabels[selected.review_status]}
+          </div>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[
+              ["all", "All status"],
+              ["draft", "Draft"],
+              ["in_review", "In review"],
+              ["approved", "Approved"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setStatusFilter(key as StatusFilter)}
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  statusFilter === key ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-700"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           <div className="grid grid-cols-3 gap-2">
             {(["draft", "in_review", "approved"] as const).map((status) => (
