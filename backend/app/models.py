@@ -61,6 +61,8 @@ class DocumentDetail(BaseModel):
     version_group_id: str = ""
     version_number: int = 1
     is_latest_version: bool = True
+    extraction_method: str = "text"
+    ocr_applied: bool = False
     page_count: int
     shared_with: list[str]
     owner: str = ""

@@ -896,6 +896,9 @@ function DocumentWorkspace(props: {
             <p className="mt-1 text-sm text-slate-500">
               Version {selected.version_number} {selected.is_latest_version ? "· latest" : ""}
             </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Extraction: {selected.ocr_applied ? "OCR" : "native text"}
+            </p>
           </div>
           <input value={props.query} onChange={(event) => props.setQuery(event.target.value)} placeholder="Search fragments" className="w-64 rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
         </div>

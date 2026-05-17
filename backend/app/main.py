@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pypdf import PdfReader
-
 from .analyzer import similarity_score
+from .extraction import extract_pdf_pages
 from .models import (
     ActivityItem,
     CommentItem,
@@ -97,13 +96,15 @@ async def process_upload(file: UploadFile):
     temp_path.write_bytes(raw)
 
     if file.filename.lower().endswith(".pdf"):
-        reader = PdfReader(temp_path)
-        page_texts = [(page.extract_text() or "").strip() for page in reader.pages]
+        extraction = extract_pdf_pages(temp_path)
+        page_texts = extraction.page_texts
+        extraction_method = extraction.method
     else:
         page_texts = [temp_path.read_text(encoding="utf-8").strip()]
+        extraction_method = "text"
     all_text = "\n".join(page_texts)
     summary = provider.summarize_document(file.filename, all_text)
-    return create_document(file.filename, page_texts, summary)
+    return create_document(file.filename, page_texts, summary, extraction_method=extraction_method)
 
 
 @app.post("/documents/{doc_id}/versions")
@@ -117,13 +118,15 @@ async def upload_document_version(doc_id: str, file: UploadFile = File(...)):
     temp_path.write_bytes(raw)
 
     if file.filename.lower().endswith(".pdf"):
-        reader = PdfReader(temp_path)
-        page_texts = [(page.extract_text() or "").strip() for page in reader.pages]
+        extraction = extract_pdf_pages(temp_path)
+        page_texts = extraction.page_texts
+        extraction_method = extraction.method
     else:
         page_texts = [temp_path.read_text(encoding="utf-8").strip()]
+        extraction_method = "text"
     all_text = "\n".join(page_texts)
     summary = provider.summarize_document(file.filename, all_text)
-    created = create_document_version(doc_id, file.filename, page_texts, summary)
+    created = create_document_version(doc_id, file.filename, page_texts, summary, extraction_method=extraction_method)
     if not created:
         raise HTTPException(status_code=404, detail="Document not found")
     return created

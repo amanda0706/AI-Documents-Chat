@@ -62,6 +62,13 @@ Current local engine:
 - deterministic suggestions,
 - local JSON persistence.
 
+Optional local OCR:
+
+- native PDF text extraction runs first,
+- scanned PDFs can fall back to OCR when the optional OCR dependencies are installed,
+- OCR uses PyMuPDF with a locally installed Tesseract engine,
+- enable the optional path with `pip install -r backend/requirements-ocr.txt`.
+
 Provider architecture:
 
 - a shared analysis provider contract,
@@ -161,6 +168,17 @@ python -m venv .venv
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
+
+### Optional OCR support
+
+For scanned PDFs, install the optional OCR dependencies and Tesseract locally:
+
+```powershell
+cd backend
+pip install -r requirements-ocr.txt
+```
+
+You also need the Tesseract executable available on your machine. PyMuPDF invokes Tesseract for OCR pages, so the main app remains usable even when OCR is not installed. citeturn0search1turn1search0turn1search1turn0search3
 
 ### Frontend
 

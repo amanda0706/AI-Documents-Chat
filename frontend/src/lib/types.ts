@@ -46,6 +46,8 @@ export type DocumentItem = {
   version_group_id: string;
   version_number: number;
   is_latest_version: boolean;
+  extraction_method: string;
+  ocr_applied: boolean;
   page_count: number;
   shared_with: string[];
   owner: string;

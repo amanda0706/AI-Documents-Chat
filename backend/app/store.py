@@ -36,6 +36,7 @@ def create_document(
     summary: DocumentSummary,
     *,
     version_group_id: str | None = None,
+    extraction_method: str = "text",
 ) -> DocumentDetail:
     documents = load_all()
     doc_id = str(uuid4())
@@ -59,6 +60,8 @@ def create_document(
         version_group_id=group_id,
         version_number=version_number,
         is_latest_version=True,
+        extraction_method=extraction_method,
+        ocr_applied=extraction_method == "ocr",
         page_count=len(page_texts),
         shared_with=[],
         owner="",
@@ -89,6 +92,7 @@ def create_document_version(
     filename: str,
     page_texts: list[str],
     summary: DocumentSummary,
+    extraction_method: str = "text",
 ) -> DocumentDetail | None:
     source = get_document(source_doc_id)
     if not source:
@@ -98,6 +102,7 @@ def create_document_version(
         page_texts,
         summary,
         version_group_id=source.version_group_id or source.id,
+        extraction_method=extraction_method,
     )
 
 
