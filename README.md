@@ -137,6 +137,24 @@ The product is intentionally split so the user-facing workflow can stay stable w
 
 ## Local run
 
+### Fast path on Windows
+
+```powershell
+.\scripts\check-local.cmd
+.\scripts\bootstrap.cmd
+.\scripts\run-local.cmd
+```
+
+That flow:
+
+- checks whether Python, Node.js, and npm are available,
+- creates the backend virtual environment,
+- installs backend and frontend dependencies,
+- creates local environment files from examples,
+- starts both services together.
+
+If you prefer manual control, use the steps below.
+
 ### Backend
 
 ```powershell
@@ -182,6 +200,17 @@ Then open:
 6. Open the comparison view and compare both documents.
 7. Inspect the review queue, suggested edits, and supporting passages below the answer.
 8. Generate and download a contract review report.
+
+## Fresh-clone checklist
+
+After cloning the repository on a new machine:
+
+1. Run `.\scripts\check-local.cmd`
+2. Run `.\scripts\bootstrap.cmd`
+3. Run `.\scripts\run-local.cmd`
+4. Open `http://localhost:3000`
+5. Upload the files from `samples/`
+6. Confirm that backend tests pass with `python -m pytest backend/tests`
 
 ## Main API endpoints
 
