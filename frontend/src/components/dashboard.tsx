@@ -66,6 +66,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
   const [report, setReport] = useState<ReportResult | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [documentSearch, setDocumentSearch] = useState("");
 
   const visibleDocuments = useMemo(() => {
     return items.filter((document) => {
@@ -74,9 +75,14 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
         document.summary.risks.some((risk) => risk.severity === riskFilter);
       const matchesStatus =
         statusFilter === "all" || document.review_status === statusFilter;
-      return matchesRisk && matchesStatus;
+      const search = documentSearch.trim().toLowerCase();
+      const matchesSearch =
+        !search ||
+        [document.filename, document.counterparty, document.owner, document.contract_type]
+          .some((value) => value.toLowerCase().includes(search));
+      return matchesRisk && matchesStatus && matchesSearch;
     });
-  }, [items, riskFilter, statusFilter]);
+  }, [documentSearch, items, riskFilter, statusFilter]);
 
   const selected = useMemo(
     () => visibleDocuments.find((document) => document.id === selectedId) ?? visibleDocuments[0],
@@ -492,6 +498,12 @@ ${passageLines}`,
             ))}
           </nav>
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Documents</p>
+          <input
+            value={documentSearch}
+            onChange={(event) => setDocumentSearch(event.target.value)}
+            placeholder="Search contracts"
+            className="mb-4 w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none"
+          />
           <div className="mb-4 flex flex-wrap gap-2">
             {[
               ["all", "All"],
@@ -584,6 +596,18 @@ function Overview({ stats, documents, deadlines }: { stats: DashboardStats; docu
   const reviewQueue = documents
     .filter((document) => document.review_status !== "approved")
     .sort((left, right) => left.summary.overall_score - right.summary.overall_score);
+  const owners = countBy(documents, (document) => document.owner || "Unassigned");
+  const contractTypes = countBy(documents, (document) => document.contract_type || "Uncategorized");
+  const priorityQueue = [...documents]
+    .map((document) => ({
+      document,
+      score:
+        (100 - document.summary.overall_score) +
+        document.summary.risks.length * 10 +
+        (document.review_status !== "approved" ? 15 : 0),
+    }))
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 3);
 
   return (
     <>
@@ -619,6 +643,34 @@ function Overview({ stats, documents, deadlines }: { stats: DashboardStats; docu
               </div>
             </div>
           ))}
+        </div>
+      </div>
+      <div className="grid gap-5 xl:grid-cols-2">
+        <div className="rounded-[28px] bg-white p-6 shadow-panel">
+          <h2 className="text-xl font-semibold">Portfolio insights</h2>
+          <div className="mt-5 space-y-4">
+            <InsightBlock title="By owner" items={owners} />
+            <InsightBlock title="By contract type" items={contractTypes} />
+          </div>
+        </div>
+        <div className="rounded-[28px] bg-white p-6 shadow-panel">
+          <h2 className="text-xl font-semibold">Attention score</h2>
+          <div className="mt-5 space-y-3">
+            {priorityQueue.map(({ document, score }) => (
+              <div key={document.id} className="flex items-center justify-between rounded-2xl bg-slate-50 p-4">
+                <div>
+                  <div className="font-medium">{document.filename}</div>
+                  <div className="text-sm text-slate-500">
+                    {document.owner || "Unassigned"} · {reviewStatusLabels[document.review_status]}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-slate-400">Priority</div>
+                  <div className="text-2xl font-semibold">{score}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       <div className="rounded-[28px] bg-white p-6 shadow-panel">
@@ -664,6 +716,31 @@ function Overview({ stats, documents, deadlines }: { stats: DashboardStats; docu
         </div>
       </div>
     </>
+  );
+}
+
+function countBy(documents: DocumentItem[], selector: (document: DocumentItem) => string) {
+  return Object.entries(
+    documents.reduce<Record<string, number>>((counts, document) => {
+      const key = selector(document);
+      counts[key] = (counts[key] ?? 0) + 1;
+      return counts;
+    }, {}),
+  );
+}
+
+function InsightBlock({ title, items }: { title: string; items: [string, number][] }) {
+  return (
+    <div>
+      <p className="text-sm font-medium text-slate-500">{title}</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {items.map(([label, value]) => (
+          <span key={label} className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
+            {label} · {value}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 

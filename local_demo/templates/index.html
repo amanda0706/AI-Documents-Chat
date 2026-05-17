@@ -45,6 +45,7 @@
           <button data-view="suggestions">Suggestions</button>
         </nav>
         <h4>Documents</h4>
+        <input id="documentSearch" placeholder="Search contracts" />
         <div class="filters">
           <button data-risk="all" class="active">All</button>
           <button data-risk="high">High</button>
@@ -72,6 +73,7 @@
       let messages = [];
       let riskFilter = 'all';
       let statusFilter = 'all';
+      let documentSearch = '';
       const $ = (id) => document.getElementById(id);
       async function api(path, options) { const r = await fetch(path, options); return r.json(); }
       async function load() {
@@ -91,7 +93,9 @@
         return documents.filter(d => {
           const matchesRisk = riskFilter === 'all' || d.summary.risks.some(risk => risk.severity === riskFilter);
           const matchesStatus = statusFilter === 'all' || d.review_status === statusFilter;
-          return matchesRisk && matchesStatus;
+          const search = documentSearch.trim().toLowerCase();
+          const matchesSearch = !search || [d.filename, d.counterparty, d.owner, d.contract_type].some(value => (value || '').toLowerCase().includes(search));
+          return matchesRisk && matchesStatus && matchesSearch;
         });
       }
       function renderSidebar() {
@@ -118,6 +122,9 @@
         const inReview = documents.filter(d => d.review_status === 'in_review').length;
         const approved = documents.filter(d => d.review_status === 'approved').length;
         const reviewQueue = documents.filter(d => d.review_status !== 'approved').sort((a,b)=>a.summary.overall_score-b.summary.overall_score);
+        const owners = countBy(documents, d => d.owner || 'Unassigned');
+        const contractTypes = countBy(documents, d => d.contract_type || 'Uncategorized');
+        const priorityQueue = documents.map(d => ({document:d, score:(100-d.summary.overall_score)+d.summary.risks.length*10+(d.review_status !== 'approved' ? 15 : 0)})).sort((a,b)=>b.score-a.score).slice(0,3);
         const today = new Date('2026-05-17');
         const deadlines = documents.flatMap(d => [['renewal', d.renewal_date], ['expiry', d.expiry_date]].filter(([,date]) => date).map(([kind,date]) => ({filename:d.filename,kind,due_date:date,days_remaining:Math.round((new Date(date)-today)/(1000*60*60*24))}))).filter(item => item.days_remaining >= 0 && item.days_remaining <= 60).sort((a,b)=>a.days_remaining-b.days_remaining);
         $('overview').innerHTML = `
@@ -130,6 +137,17 @@
             <div class="panel stat">Approved<strong>${approved}</strong></div>
             <div class="panel stat">Expiring soon<strong>${deadlines.filter(d=>d.kind==='expiry').length}</strong></div>
             <div class="panel stat">Renewal due<strong>${deadlines.filter(d=>d.kind==='renewal').length}</strong></div>
+          </div>
+          <div class="panel">
+            <h2>Portfolio insights</h2>
+            <p class="muted">By owner</p>
+            ${owners.map(([label,value])=>`<span class="tag">${label} ? ${value}</span>`).join('')}
+            <p class="muted">By contract type</p>
+            ${contractTypes.map(([label,value])=>`<span class="tag">${label} ? ${value}</span>`).join('')}
+          </div>
+          <div class="panel">
+            <h2>Attention score</h2>
+            ${priorityQueue.map(({document,score})=>`<div class="fragment"><strong>${document.filename}</strong><br><span class="muted">${document.owner || 'Unassigned'} ? priority ${score}</span></div>`).join('')}
           </div>
           <div class="panel">
             <h2>Upcoming deadlines</h2>
@@ -284,6 +302,9 @@
       function statusLabel(status) {
         return ({draft:'Draft',in_review:'In review',approved:'Approved'})[status] || status;
       }
+      function countBy(items, selector) {
+        return Object.entries(items.reduce((counts, item) => { const key = selector(item); counts[key] = (counts[key] || 0) + 1; return counts; }, {}));
+      }
       function downloadMarkdown(report) {
         const blob = new Blob([report.markdown], {type:'text/markdown;charset=utf-8'});
         const url = URL.createObjectURL(blob);
@@ -311,6 +332,7 @@
         document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); btn.classList.add('active');
         ['overview','document','compare','suggestions'].forEach(id => $(id).classList.toggle('hidden', id !== btn.dataset.view));
       });
+      $('documentSearch').oninput = (event) => { documentSearch = event.target.value; renderSidebar(); renderDocument(); renderCompare(); renderSuggestions(); };
       document.querySelectorAll('.filters button').forEach(btn => btn.onclick = () => {
         if (btn.dataset.risk) {
           riskFilter = btn.dataset.risk;
