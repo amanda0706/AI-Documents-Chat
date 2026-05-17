@@ -20,7 +20,33 @@ ClausePilot is a local-first **AI Contract / Document Assistant** for people who
 - compare two documents,
 - share documents with collaborators,
 - show a lightweight dashboard,
-- keep a local document history.
+- keep a local document history,
+- export a reusable contract review report,
+- collect reviewer comments,
+- move contracts through a review workflow,
+- surface a review queue and filter documents by risk or review status.
+
+## Feature highlights
+
+### 1. Explainable document chat
+
+Questions return not only an answer, but also the supporting contract passages that justify it.
+
+### 2. Contract risk review
+
+The app highlights risky clauses, scores the document, and proposes safer wording that a reviewer can inspect before acting.
+
+### 3. Review workflow
+
+Each contract can move through `Draft`, `In review`, and `Approved`, with comments and activity history preserving the human review trail.
+
+### 4. Portfolio-level triage
+
+The dashboard shows high-risk contracts, items awaiting review, approved documents, and a review queue that puts the weakest agreements first.
+
+### 5. Exportable output
+
+Users can generate and download a markdown report that is ready to share or convert into a polished PDF later.
 
 ## Why the project is built this way
 
@@ -65,6 +91,10 @@ Future provider layer:
 - multi-language flag
 - sharing
 - dashboard
+- review comments
+- review status workflow
+- review queue
+- exportable reports
 
 ## Stack
 
@@ -132,8 +162,10 @@ Then open:
 2. Upload `samples/master-services-agreement.txt`.
 3. Upload `samples/supplier-agreement.txt`.
 4. Ask: `What are the payment terms?`
-5. Open the comparison view and compare both documents.
-6. Inspect the risk score, suggested edits, and supporting passages below the answer.
+5. Add a reviewer comment and move the first contract into `In review`.
+6. Open the comparison view and compare both documents.
+7. Inspect the review queue, suggested edits, and supporting passages below the answer.
+8. Generate and download a contract review report.
 
 ## Main API endpoints
 
@@ -144,6 +176,9 @@ Then open:
 - `GET /documents/{id}/search`
 - `POST /documents/{id}/ask`
 - `POST /documents/{id}/share`
+- `POST /documents/{id}/comments`
+- `POST /documents/{id}/status`
+- `GET /documents/{id}/report`
 - `POST /compare`
 
 ## Demo materials
@@ -172,6 +207,8 @@ This repository demonstrates:
 - AI-oriented architecture with a swappable intelligence layer,
 - API design for upload, search, chat, sharing, and comparison flows,
 - explainability patterns through citations and risk scoring,
+- workflow thinking through comments, statuses, and review queues,
+- document export flows for downstream collaboration,
 - test coverage for core analysis rules,
 - UI design for a product-style dashboard,
 - a clean migration path from local prototype to cloud product.
