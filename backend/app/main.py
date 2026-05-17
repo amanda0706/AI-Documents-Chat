@@ -22,6 +22,7 @@ from .models import (
     DocumentSummary,
     QuestionRequest,
     QuestionResponse,
+    ReportResponse,
     SearchResult,
     ShareRequest,
 )
@@ -139,6 +140,46 @@ def share(doc_id: str, payload: ShareRequest):
     if not updated:
         raise HTTPException(status_code=404, detail="Document not found")
     return updated
+
+
+@app.get("/documents/{doc_id}/report", response_model=ReportResponse)
+def document_report(doc_id: str):
+    item = get_document(doc_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Document not found")
+    risk_lines = "\n".join(
+        f"- **{risk.title}** ({risk.severity}) — {risk.explanation}"
+        for risk in item.summary.risks
+    ) or "- No material risks detected."
+    suggestion_lines = "\n".join(
+        f"- **{suggestion.title}** — {suggestion.rationale}\n  - Suggested text: `{suggestion.proposed_text}`"
+        for suggestion in item.summary.suggestions
+    ) or "- No suggested edits."
+    passage_lines = "\n".join(
+        f"- Page {fragment.page}: {fragment.text}"
+        for fragment in item.fragments[:3]
+    ) or "- No passages available."
+    markdown = f"""# Contract Review Report
+
+## Document
+{item.filename}
+
+## Executive summary
+{item.summary.summary}
+
+## Risk score
+{item.summary.overall_score}/100
+
+## Key risks
+{risk_lines}
+
+## Suggested edits
+{suggestion_lines}
+
+## Supporting passages
+{passage_lines}
+"""
+    return ReportResponse(filename=item.filename, markdown=markdown)
 
 
 @app.post("/compare", response_model=ComparisonResponse)

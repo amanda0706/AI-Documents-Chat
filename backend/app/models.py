@@ -81,6 +81,11 @@ class ComparisonResponse(BaseModel):
     differences: list[DifferenceItem]
 
 
+class ReportResponse(BaseModel):
+    filename: str
+    markdown: str
+
+
 class ShareRequest(BaseModel):
     email: str
 

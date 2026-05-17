@@ -1,4 +1,4 @@
-import type { ComparisonResult, DashboardStats, DocumentItem } from "./types";
+import type { ComparisonResult, DashboardStats, DocumentItem, ReportResult } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -27,6 +27,12 @@ export async function compareDocuments(leftId: string, rightId: string): Promise
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ left_id: leftId, right_id: rightId }),
   });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+export async function fetchReport(documentId: string): Promise<ReportResult | null> {
+  const response = await fetch(`${API_URL}/documents/${documentId}/report`, { cache: "no-store" });
   if (!response.ok) return null;
   return response.json();
 }

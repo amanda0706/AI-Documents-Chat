@@ -105,6 +105,46 @@ def share(doc_id: str):
     return jsonify(updated.model_dump())
 
 
+@app.get("/api/documents/<doc_id>/report")
+def report(doc_id: str):
+    document = get_document(doc_id)
+    if not document:
+        return jsonify(error="Document not found"), 404
+    risk_lines = "\n".join(
+        f"- **{risk.title}** ({risk.severity}) — {risk.explanation}"
+        for risk in document.summary.risks
+    ) or "- No material risks detected."
+    suggestion_lines = "\n".join(
+        f"- **{suggestion.title}** — {suggestion.rationale}\n  - Suggested text: `{suggestion.proposed_text}`"
+        for suggestion in document.summary.suggestions
+    ) or "- No suggested edits."
+    passage_lines = "\n".join(
+        f"- Page {fragment.page}: {fragment.text}"
+        for fragment in document.fragments[:3]
+    ) or "- No passages available."
+    markdown = f"""# Contract Review Report
+
+## Document
+{document.filename}
+
+## Executive summary
+{document.summary.summary}
+
+## Risk score
+{document.summary.overall_score}/100
+
+## Key risks
+{risk_lines}
+
+## Suggested edits
+{suggestion_lines}
+
+## Supporting passages
+{passage_lines}
+"""
+    return jsonify(filename=document.filename, markdown=markdown)
+
+
 @app.post("/api/compare")
 def compare():
     payload = request.get_json(force=True)

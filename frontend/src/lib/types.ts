@@ -61,3 +61,8 @@ export type ComparisonResult = {
     impact: string;
   }[];
 };
+
+export type ReportResult = {
+  filename: string;
+  markdown: string;
+};

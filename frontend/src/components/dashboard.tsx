@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { compareDocuments } from "@/lib/api";
-import type { ComparisonResult, DashboardStats, DocumentItem, RiskItem } from "@/lib/types";
+import { compareDocuments, fetchReport } from "@/lib/api";
+import type { ComparisonResult, DashboardStats, DocumentItem, ReportResult, RiskItem } from "@/lib/types";
 
 type DashboardProps = {
   documents: DocumentItem[];
@@ -46,6 +46,7 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
   const [shareEmail, setShareEmail] = useState("");
   const [compareId, setCompareId] = useState(documents[1]?.id ?? documents[0]?.id ?? "");
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
+  const [report, setReport] = useState<ReportResult | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
 
   const visibleDocuments = useMemo(() => {
@@ -210,6 +211,53 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
     });
   }
 
+  async function generateReport() {
+    if (!selected) return;
+    if (!selected.id.startsWith("demo-")) {
+      setReport(await fetchReport(selected.id));
+      return;
+    }
+    const riskLines = selected.summary.risks.length
+      ? selected.summary.risks
+          .map((risk) => `- **${risk.title}** (${risk.severity}) — ${risk.explanation}`)
+          .join("\n")
+      : "- No material risks detected.";
+    const suggestionLines = selected.summary.suggestions.length
+      ? selected.summary.suggestions
+          .map(
+            (suggestion) =>
+              `- **${suggestion.title}** — ${suggestion.rationale}\n  - Suggested text: \`${suggestion.proposed_text}\``,
+          )
+          .join("\n")
+      : "- No suggested edits.";
+    const passageLines = selected.fragments
+      .slice(0, 3)
+      .map((fragment) => `- Page ${fragment.page}: ${fragment.text}`)
+      .join("\n");
+    setReport({
+      filename: selected.filename,
+      markdown: `# Contract Review Report
+
+## Document
+${selected.filename}
+
+## Executive summary
+${selected.summary.summary}
+
+## Risk score
+${selected.summary.overall_score}/100
+
+## Key risks
+${riskLines}
+
+## Suggested edits
+${suggestionLines}
+
+## Supporting passages
+${passageLines}`,
+    });
+  }
+
   function addLocalActivity(documentId: string, activity: DocumentItem["activity"][number]) {
     setItems((current) =>
       current.map((item) =>
@@ -354,6 +402,8 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
               shareEmail={shareEmail}
               setShareEmail={setShareEmail}
               shareDocument={shareDocument}
+              generateReport={generateReport}
+              report={report}
             />
           )}
           {view === "compare" && selected && (
@@ -424,6 +474,8 @@ function DocumentWorkspace(props: {
   shareEmail: string;
   setShareEmail: (value: string) => void;
   shareDocument: () => void;
+  generateReport: () => void;
+  report: ReportResult | null;
 }) {
   const { selected } = props;
   return (
@@ -493,6 +545,16 @@ function DocumentWorkspace(props: {
           <input value={props.shareEmail} onChange={(event) => props.setShareEmail(event.target.value)} placeholder="email współpracownika" className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
           <button onClick={props.shareDocument} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium">Share</button>
           <p className="mt-3 text-sm text-slate-500">{selected.shared_with.join(", ") || "Jeszcze nikomu nie udostępniono."}</p>
+        </Panel>
+        <Panel title="Export report">
+          <button onClick={props.generateReport} className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white">
+            Generate report
+          </button>
+          {props.report && (
+            <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+              {props.report.markdown}
+            </pre>
+          )}
         </Panel>
         <Panel title="Activity">
           <div className="space-y-3">

@@ -167,6 +167,10 @@
           else Object.assign(d, await api(`/api/documents/${d.id}/share`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})}));
           renderDocument(); renderOverview();
         };
+        $('report').onclick = async () => {
+          const res = d.id.startsWith('demo-') ? buildDemoReport(d) : await api(`/api/documents/${d.id}/report`);
+          $('reportOutput').textContent = res.markdown;
+        };
       }
       function renderCompare() {
         const d = current();
@@ -207,6 +211,16 @@
       function citationMarkup(items) {
         if (!items.length) return '';
         return `<h4>Supporting passages</h4>${items.map(item => `<div class="fragment"><small>Page ${item.page}</small><p>${item.text}</p></div>`).join('')}`;
+      }
+      function buildDemoReport(document) {
+        const risks = document.summary.risks.length
+          ? document.summary.risks.map(risk => `- **${risk.title}** (${risk.severity}) ? ${risk.explanation}`).join('\n')
+          : '- No material risks detected.';
+        const suggestions = document.summary.suggestions.length
+          ? document.summary.suggestions.map(suggestion => `- **${suggestion.title}** ? ${suggestion.rationale}\n  - Suggested text: \`${suggestion.proposed_text}\``).join('\n')
+          : '- No suggested edits.';
+        const passages = document.fragments.slice(0,3).map(fragment => `- Page ${fragment.page}: ${fragment.text}`).join('\n');
+        return { filename: document.filename, markdown: `# Contract Review Report\n\n## Document\n${document.filename}\n\n## Executive summary\n${document.summary.summary}\n\n## Risk score\n${document.summary.overall_score}/100\n\n## Key risks\n${risks}\n\n## Suggested edits\n${suggestions}\n\n## Supporting passages\n${passages}` };
       }
       function activityMarkup(document) {
         return document.activity?.length
