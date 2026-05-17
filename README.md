@@ -71,6 +71,14 @@ Provider architecture:
 - a local provider active today,
 - a clean seam for future OpenAI / Azure OpenAI providers.
 
+Configuration today:
+
+```env
+ANALYSIS_PROVIDER=local
+```
+
+The app already reads the provider choice from environment variables, so switching intelligence backends later does not require changing the product flow.
+
 Future provider layer:
 
 - OpenAI / Azure OpenAI for richer summaries and Q&A,

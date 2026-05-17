@@ -19,6 +19,7 @@ FastAPI backend
 - Metadata is stored in JSON.
 - Analysis runs through a provider interface.
 - The active provider is deterministic, local, and explainable.
+- Provider selection is configuration-driven through `ANALYSIS_PROVIDER`.
 
 ## Future mode
 

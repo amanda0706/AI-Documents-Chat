@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from typing import Protocol
 
 from .analyzer import (
@@ -50,4 +51,7 @@ class LocalProvider:
 
 
 def get_provider() -> AnalysisProvider:
-    return LocalProvider()
+    provider_name = os.getenv("ANALYSIS_PROVIDER", "local").strip().lower()
+    if provider_name == "local":
+        return LocalProvider()
+    raise ValueError(f"Unsupported analysis provider: {provider_name}")
