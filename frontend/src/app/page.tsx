@@ -1,5 +1,5 @@
 import { Dashboard } from "@/components/dashboard";
-import { fetchDashboard, fetchDocuments } from "@/lib/api";
+import { fetchDashboard, fetchDeadlines, fetchDocuments } from "@/lib/api";
 
 const demoDocuments = [
   {
@@ -7,6 +7,12 @@ const demoDocuments = [
     filename: "Master Services Agreement.pdf",
     page_count: 3,
     shared_with: ["anna@firma.pl"],
+    owner: "anna@firma.pl",
+    counterparty: "Northwind Labs",
+    contract_type: "MSA",
+    effective_date: "2026-01-01",
+    expiry_date: "2026-06-30",
+    renewal_date: "2026-06-10",
     review_status: "in_review",
     activity: [
       {
@@ -73,6 +79,12 @@ const demoDocuments = [
     filename: "Supplier Agreement.pdf",
     page_count: 2,
     shared_with: [],
+    owner: "marta@firma.pl",
+    counterparty: "Contoso Supply",
+    contract_type: "Supplier Agreement",
+    effective_date: "2026-02-15",
+    expiry_date: "2027-02-14",
+    renewal_date: "2027-01-15",
     review_status: "approved",
     activity: [
       {
@@ -105,15 +117,35 @@ const demoStats = {
   shared_documents: 1,
   pending_review_documents: 1,
   approved_documents: 1,
+  expiring_soon_documents: 1,
+  renewal_due_documents: 1,
 };
 
+const demoDeadlines = [
+  {
+    document_id: "demo-1",
+    filename: "Master Services Agreement.pdf",
+    kind: "renewal" as const,
+    due_date: "2026-06-10",
+    days_remaining: 24,
+  },
+  {
+    document_id: "demo-1",
+    filename: "Master Services Agreement.pdf",
+    kind: "expiry" as const,
+    due_date: "2026-06-30",
+    days_remaining: 44,
+  },
+];
+
 export default async function Home() {
-  const [documents, stats] = await Promise.all([fetchDocuments(), fetchDashboard()]);
+  const [documents, stats, deadlines] = await Promise.all([fetchDocuments(), fetchDashboard(), fetchDeadlines()]);
   return (
     <Dashboard
       documents={documents}
       stats={documents.length ? stats : demoStats}
       demoDocuments={demoDocuments}
+      deadlines={documents.length ? deadlines : demoDeadlines}
     />
   );
 }

@@ -41,6 +41,12 @@ def create_document(filename: str, page_texts: list[str], summary: DocumentSumma
         filename=filename,
         page_count=len(page_texts),
         shared_with=[],
+        owner="",
+        counterparty="",
+        contract_type="",
+        effective_date="",
+        expiry_date="",
+        renewal_date="",
         review_status="draft",
         activity=[
             ActivityItem(
@@ -135,6 +141,44 @@ def update_review_status(doc_id: str, status: str) -> DocumentDetail | None:
             type="status",
             label="Review status updated",
             detail=f"Status changed to {status}.",
+        ).model_dump(),
+    )
+    documents[doc_id] = payload
+    save_all(documents)
+    return DocumentDetail(**payload)
+
+
+def update_metadata(
+    doc_id: str,
+    *,
+    owner: str,
+    counterparty: str,
+    contract_type: str,
+    effective_date: str,
+    expiry_date: str,
+    renewal_date: str,
+) -> DocumentDetail | None:
+    documents = load_all()
+    payload = documents.get(doc_id)
+    if not payload:
+        return None
+    payload.update(
+        {
+            "owner": owner,
+            "counterparty": counterparty,
+            "contract_type": contract_type,
+            "effective_date": effective_date,
+            "expiry_date": expiry_date,
+            "renewal_date": renewal_date,
+        }
+    )
+    payload.setdefault("activity", [])
+    payload["activity"].insert(
+        0,
+        ActivityItem(
+            type="metadata",
+            label="Metadata updated",
+            detail="Contract profile updated.",
         ).model_dump(),
     )
     documents[doc_id] = payload

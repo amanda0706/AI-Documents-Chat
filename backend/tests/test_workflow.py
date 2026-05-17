@@ -8,6 +8,7 @@ from backend.app.store import (
     add_comment,
     create_document,
     get_document,
+    update_metadata,
     update_review_status,
 )
 
@@ -65,3 +66,23 @@ def test_saved_document_can_be_reloaded_with_workflow_state() -> None:
     assert reloaded is not None
     assert reloaded.review_status == "in_review"
     assert reloaded.comments[0].body == "Looks good."
+
+
+def test_metadata_can_be_updated() -> None:
+    document = create_document("agreement.txt", ["Payment terms are net 30 days."], build_summary())
+    updated = update_metadata(
+        document.id,
+        owner="anna@example.com",
+        counterparty="Northwind Labs",
+        contract_type="MSA",
+        effective_date="2026-01-01",
+        expiry_date="2026-12-31",
+        renewal_date="2026-11-30",
+    )
+
+    assert updated is not None
+    assert updated.owner == "anna@example.com"
+    assert updated.counterparty == "Northwind Labs"
+    assert updated.contract_type == "MSA"
+    assert updated.renewal_date == "2026-11-30"
+    assert updated.activity[0].type == "metadata"

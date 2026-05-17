@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { compareDocuments, fetchReport } from "@/lib/api";
-import type { ComparisonResult, DashboardStats, DocumentItem, ReportResult, RiskItem } from "@/lib/types";
+import type { ComparisonResult, DashboardStats, DeadlineItem, DocumentItem, ReportResult, RiskItem } from "@/lib/types";
 
 type DashboardProps = {
   documents: DocumentItem[];
   stats: DashboardStats;
   demoDocuments: DocumentItem[];
+  deadlines: DeadlineItem[];
 };
 
 type View = "overview" | "document" | "compare" | "suggestions";
@@ -39,7 +40,7 @@ const riskMarkers: Record<string, string[]> = {
   confidentiality: ["confidentiality", "confidential information", "non-disclosure"],
 };
 
-export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
+export function Dashboard({ documents, stats, demoDocuments, deadlines }: DashboardProps) {
   const [email, setEmail] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [items, setItems] = useState(documents);
@@ -52,6 +53,14 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
   const [query, setQuery] = useState("");
   const [shareEmail, setShareEmail] = useState("");
   const [commentBody, setCommentBody] = useState("");
+  const [metadataDraft, setMetadataDraft] = useState({
+    owner: documents[0]?.owner ?? "",
+    counterparty: documents[0]?.counterparty ?? "",
+    contract_type: documents[0]?.contract_type ?? "",
+    effective_date: documents[0]?.effective_date ?? "",
+    expiry_date: documents[0]?.expiry_date ?? "",
+    renewal_date: documents[0]?.renewal_date ?? "",
+  });
   const [compareId, setCompareId] = useState(documents[1]?.id ?? documents[0]?.id ?? "");
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
   const [report, setReport] = useState<ReportResult | null>(null);
@@ -81,6 +90,18 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
       fragment.text.toLowerCase().includes(query.toLowerCase()),
     );
   }, [query, selected]);
+
+  function syncMetadataDraft(document: DocumentItem | undefined) {
+    if (!document) return;
+    setMetadataDraft({
+      owner: document.owner,
+      counterparty: document.counterparty,
+      contract_type: document.contract_type,
+      effective_date: document.effective_date,
+      expiry_date: document.expiry_date,
+      renewal_date: document.renewal_date,
+    });
+  }
 
   async function askQuestion() {
     if (!question.trim() || !selected) return;
@@ -149,6 +170,7 @@ export function Dashboard({ documents, stats, demoDocuments }: DashboardProps) {
     const created = await response.json();
     setItems((current) => [created, ...current]);
     setSelectedId(created.id);
+    syncMetadataDraft(created);
     setView("document");
   }
 
@@ -338,6 +360,39 @@ ${passageLines}`,
     );
   }
 
+  async function saveMetadata() {
+    if (!selected) return;
+    if (!selected.id.startsWith("demo-")) {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/documents/${selected.id}/metadata`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(metadataDraft),
+        },
+      );
+      if (response.ok) {
+        const updated = await response.json();
+        setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      }
+      return;
+    }
+    setItems((current) =>
+      current.map((item) =>
+        item.id === selected.id
+          ? {
+              ...item,
+              ...metadataDraft,
+              activity: [
+                { type: "metadata", label: "Metadata updated", detail: "Contract profile updated." },
+                ...item.activity,
+              ],
+            }
+          : item,
+      ),
+    );
+  }
+
   function downloadReport() {
     if (!report) return;
     const blob = new Blob([report.markdown], { type: "text/markdown;charset=utf-8" });
@@ -459,7 +514,10 @@ ${passageLines}`,
             {visibleDocuments.map((document) => (
               <button
                 key={document.id}
-                onClick={() => setSelectedId(document.id)}
+                onClick={() => {
+                  setSelectedId(document.id);
+                  syncMetadataDraft(document);
+                }}
                 className={`w-full rounded-2xl px-4 py-3 text-left text-sm ${
                   document.id === selected?.id ? "bg-blue-50 text-slate-900" : "bg-slate-50 text-slate-700"
                 }`}
@@ -477,7 +535,7 @@ ${passageLines}`,
         </aside>
 
         <section className="space-y-5">
-          {view === "overview" && <Overview stats={stats} documents={visibleDocuments} />}
+          {view === "overview" && <Overview stats={stats} documents={visibleDocuments} deadlines={deadlines} />}
           {view === "document" && selected && (
             <DocumentWorkspace
               selected={selected}
@@ -497,6 +555,9 @@ ${passageLines}`,
               setCommentBody={setCommentBody}
               addComment={addComment}
               updateReviewStatus={updateReviewStatus}
+              metadataDraft={metadataDraft}
+              setMetadataDraft={setMetadataDraft}
+              saveMetadata={saveMetadata}
               generateReport={generateReport}
               downloadReport={downloadReport}
               report={report}
@@ -519,14 +580,14 @@ ${passageLines}`,
   );
 }
 
-function Overview({ stats, documents }: { stats: DashboardStats; documents: DocumentItem[] }) {
+function Overview({ stats, documents, deadlines }: { stats: DashboardStats; documents: DocumentItem[]; deadlines: DeadlineItem[] }) {
   const reviewQueue = documents
     .filter((document) => document.review_status !== "approved")
     .sort((left, right) => left.summary.overall_score - right.summary.overall_score);
 
   return (
     <>
-      <div className="grid grid-cols-6 gap-5">
+      <div className="grid grid-cols-4 gap-5 xl:grid-cols-8">
         {[
           ["Documents", stats.total_documents],
           ["High risk", stats.high_risk_documents],
@@ -534,6 +595,8 @@ function Overview({ stats, documents }: { stats: DashboardStats; documents: Docu
           ["Shared", stats.shared_documents],
           ["In review", stats.pending_review_documents],
           ["Approved", stats.approved_documents],
+          ["Expiring soon", stats.expiring_soon_documents],
+          ["Renewal due", stats.renewal_due_documents],
         ].map(([label, value]) => (
           <div key={label} className="rounded-[28px] bg-white p-5 shadow-panel">
             <p className="text-sm text-slate-400">{label}</p>
@@ -560,6 +623,27 @@ function Overview({ stats, documents }: { stats: DashboardStats; documents: Docu
       </div>
       <div className="rounded-[28px] bg-white p-6 shadow-panel">
         <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Upcoming deadlines</h2>
+          <span className="text-sm text-slate-400">{deadlines.length} within 60 days</span>
+        </div>
+        <div className="mt-5 space-y-3">
+          {deadlines.length ? deadlines.map((deadline) => (
+            <div key={`${deadline.document_id}-${deadline.kind}`} className="flex items-center justify-between rounded-2xl bg-slate-50 p-4">
+              <div>
+                <div className="font-medium">{deadline.filename}</div>
+                <div className="text-sm text-slate-500">
+                  {deadline.kind === "renewal" ? "Renewal" : "Expiry"} · {deadline.due_date}
+                </div>
+              </div>
+              <div className="text-sm font-medium text-amber-700">
+                {deadline.days_remaining} days left
+              </div>
+            </div>
+          )) : <p className="text-sm text-slate-500">No deadlines in the next 60 days.</p>}
+        </div>
+      </div>
+      <div className="rounded-[28px] bg-white p-6 shadow-panel">
+        <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Review queue</h2>
           <span className="text-sm text-slate-400">{reviewQueue.length} awaiting attention</span>
         </div>
@@ -573,7 +657,7 @@ function Overview({ stats, documents }: { stats: DashboardStats; documents: Docu
                 </div>
               </div>
               <div className="text-sm text-slate-500">
-                {document.summary.risks.length} risks
+                {document.summary.risks.length} risks ? {document.owner || "Unassigned"}
               </div>
             </div>
           )) : <p className="text-sm text-slate-500">Everything is approved.</p>}
@@ -601,6 +685,23 @@ function DocumentWorkspace(props: {
   setCommentBody: (value: string) => void;
   addComment: () => void;
   updateReviewStatus: (status: DocumentItem["review_status"]) => void;
+  metadataDraft: {
+    owner: string;
+    counterparty: string;
+    contract_type: string;
+    effective_date: string;
+    expiry_date: string;
+    renewal_date: string;
+  };
+  setMetadataDraft: (value: {
+    owner: string;
+    counterparty: string;
+    contract_type: string;
+    effective_date: string;
+    expiry_date: string;
+    renewal_date: string;
+  }) => void;
+  saveMetadata: () => void;
   generateReport: () => void;
   downloadReport: () => void;
   report: ReportResult | null;
@@ -629,6 +730,19 @@ function DocumentWorkspace(props: {
       <aside className="space-y-5">
         <Panel title="AI Summary">
           <p className="leading-7 text-slate-700">{selected.summary.summary}</p>
+        </Panel>
+        <Panel title="Contract metadata">
+          <div className="space-y-3">
+            <input value={props.metadataDraft.owner} onChange={(event) => props.setMetadataDraft({ ...props.metadataDraft, owner: event.target.value })} placeholder="Owner / assignee" className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
+            <input value={props.metadataDraft.counterparty} onChange={(event) => props.setMetadataDraft({ ...props.metadataDraft, counterparty: event.target.value })} placeholder="Counterparty" className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
+            <input value={props.metadataDraft.contract_type} onChange={(event) => props.setMetadataDraft({ ...props.metadataDraft, contract_type: event.target.value })} placeholder="Contract type" className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
+            <input type="date" value={props.metadataDraft.effective_date} onChange={(event) => props.setMetadataDraft({ ...props.metadataDraft, effective_date: event.target.value })} className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
+            <input type="date" value={props.metadataDraft.expiry_date} onChange={(event) => props.setMetadataDraft({ ...props.metadataDraft, expiry_date: event.target.value })} className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
+            <input type="date" value={props.metadataDraft.renewal_date} onChange={(event) => props.setMetadataDraft({ ...props.metadataDraft, renewal_date: event.target.value })} className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
+          </div>
+          <button onClick={props.saveMetadata} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium">
+            Save metadata
+          </button>
         </Panel>
         <Panel title="Review status">
           <div className="mb-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">

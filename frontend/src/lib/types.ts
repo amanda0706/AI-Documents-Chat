@@ -34,6 +34,12 @@ export type DocumentItem = {
   filename: string;
   page_count: number;
   shared_with: string[];
+  owner: string;
+  counterparty: string;
+  contract_type: string;
+  effective_date: string;
+  expiry_date: string;
+  renewal_date: string;
   review_status: "draft" | "in_review" | "approved";
   activity: {
     type: string;
@@ -55,6 +61,8 @@ export type DashboardStats = {
   shared_documents: number;
   pending_review_documents: number;
   approved_documents: number;
+  expiring_soon_documents: number;
+  renewal_due_documents: number;
 };
 
 export type ComparisonResult = {
@@ -72,4 +80,12 @@ export type ComparisonResult = {
 export type ReportResult = {
   filename: string;
   markdown: string;
+};
+
+export type DeadlineItem = {
+  document_id: string;
+  filename: string;
+  kind: "expiry" | "renewal";
+  due_date: string;
+  days_remaining: number;
 };

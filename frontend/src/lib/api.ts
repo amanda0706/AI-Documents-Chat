@@ -1,4 +1,4 @@
-import type { ComparisonResult, DashboardStats, DocumentItem, ReportResult } from "./types";
+import type { ComparisonResult, DashboardStats, DeadlineItem, DocumentItem, ReportResult } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -18,6 +18,8 @@ export async function fetchDashboard(): Promise<DashboardStats> {
       shared_documents: 0,
       pending_review_documents: 0,
       approved_documents: 0,
+      expiring_soon_documents: 0,
+      renewal_due_documents: 0,
     };
   }
   return response.json();
@@ -36,5 +38,11 @@ export async function compareDocuments(leftId: string, rightId: string): Promise
 export async function fetchReport(documentId: string): Promise<ReportResult | null> {
   const response = await fetch(`${API_URL}/documents/${documentId}/report`, { cache: "no-store" });
   if (!response.ok) return null;
+  return response.json();
+}
+
+export async function fetchDeadlines(): Promise<DeadlineItem[]> {
+  const response = await fetch(`${API_URL}/deadlines`, { cache: "no-store" });
+  if (!response.ok) return [];
   return response.json();
 }

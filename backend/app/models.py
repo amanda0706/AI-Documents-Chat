@@ -37,6 +37,12 @@ class DocumentDetail(BaseModel):
     filename: str
     page_count: int
     shared_with: list[str]
+    owner: str = ""
+    counterparty: str = ""
+    contract_type: str = ""
+    effective_date: str = ""
+    expiry_date: str = ""
+    renewal_date: str = ""
     review_status: str = "draft"
     activity: list["ActivityItem"] = Field(default_factory=list)
     comments: list["CommentItem"] = Field(default_factory=list)
@@ -106,6 +112,15 @@ class ReviewStatusRequest(BaseModel):
     status: str
 
 
+class MetadataRequest(BaseModel):
+    owner: str = ""
+    counterparty: str = ""
+    contract_type: str = ""
+    effective_date: str = ""
+    expiry_date: str = ""
+    renewal_date: str = ""
+
+
 class DashboardStats(BaseModel):
     total_documents: int
     high_risk_documents: int
@@ -113,3 +128,13 @@ class DashboardStats(BaseModel):
     shared_documents: int
     pending_review_documents: int
     approved_documents: int
+    expiring_soon_documents: int
+    renewal_due_documents: int
+
+
+class DeadlineItem(BaseModel):
+    document_id: str
+    filename: str
+    kind: str
+    due_date: str
+    days_remaining: int

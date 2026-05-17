@@ -12,6 +12,8 @@ from .models import (
     CompareRequest,
     ComparisonResponse,
     DashboardStats,
+    DeadlineItem,
+    MetadataRequest,
     QuestionRequest,
     QuestionResponse,
     ReportResponse,
@@ -19,6 +21,7 @@ from .models import (
     SearchResult,
     ShareRequest,
 )
+from .deadlines import build_deadlines
 from .store import (
     UPLOADS_DIR,
     add_activity,
@@ -28,6 +31,7 @@ from .store import (
     list_documents,
     share_document,
     update_review_status,
+    update_metadata,
 )
 from .providers import get_provider
 
@@ -59,6 +63,7 @@ def dashboard():
     shared = sum(1 for document in documents if document.shared_with)
     pending_review = sum(1 for document in documents if document.review_status == "in_review")
     approved = sum(1 for document in documents if document.review_status == "approved")
+    deadlines = build_deadlines(documents)
     return DashboardStats(
         total_documents=total,
         high_risk_documents=high_risk,
@@ -66,7 +71,14 @@ def dashboard():
         shared_documents=shared,
         pending_review_documents=pending_review,
         approved_documents=approved,
+        expiring_soon_documents=sum(1 for item in deadlines if item.kind == "expiry"),
+        renewal_due_documents=sum(1 for item in deadlines if item.kind == "renewal"),
     )
+
+
+@app.get("/deadlines", response_model=list[DeadlineItem])
+def deadlines():
+    return build_deadlines(list_documents())
 
 
 @app.get("/documents")
@@ -153,6 +165,22 @@ def update_status(doc_id: str, payload: ReviewStatusRequest):
     if payload.status not in {"draft", "in_review", "approved"}:
         raise HTTPException(status_code=400, detail="Invalid review status")
     updated = update_review_status(doc_id, payload.status)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return updated
+
+
+@app.post("/documents/{doc_id}/metadata")
+def update_document_metadata(doc_id: str, payload: MetadataRequest):
+    updated = update_metadata(
+        doc_id,
+        owner=payload.owner,
+        counterparty=payload.counterparty,
+        contract_type=payload.contract_type,
+        effective_date=payload.effective_date,
+        expiry_date=payload.expiry_date,
+        renewal_date=payload.renewal_date,
+    )
     if not updated:
         raise HTTPException(status_code=404, detail="Document not found")
     return updated

@@ -10,8 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app.models import ActivityItem, CommentItem  # noqa: E402
+from app.deadlines import build_deadlines  # noqa: E402
 from app.providers import get_provider  # noqa: E402
-from app.store import add_activity, add_comment, create_document, get_document, list_documents, share_document, update_review_status  # noqa: E402
+from app.store import add_activity, add_comment, create_document, get_document, list_documents, share_document, update_metadata as store_update_metadata, update_review_status  # noqa: E402
 
 
 app = Flask(__name__)
@@ -34,6 +35,7 @@ def dashboard():
     shared = sum(1 for document in documents if document.shared_with)
     pending_review = sum(1 for document in documents if document.review_status == "in_review")
     approved = sum(1 for document in documents if document.review_status == "approved")
+    deadlines = build_deadlines(documents)
     return jsonify(
         total_documents=total,
         high_risk_documents=high_risk,
@@ -41,7 +43,14 @@ def dashboard():
         shared_documents=shared,
         pending_review_documents=pending_review,
         approved_documents=approved,
+        expiring_soon_documents=sum(1 for item in deadlines if item.kind == "expiry"),
+        renewal_due_documents=sum(1 for item in deadlines if item.kind == "renewal"),
     )
+
+
+@app.get("/api/deadlines")
+def deadlines():
+    return jsonify([item.model_dump() for item in build_deadlines(list_documents())])
 
 
 @app.get("/api/documents")
@@ -112,6 +121,23 @@ def update_status(doc_id: str):
     return jsonify(updated.model_dump())
 
 
+@app.post("/api/documents/<doc_id>/metadata")
+def update_metadata(doc_id: str):
+    payload = request.get_json(force=True)
+    updated = store_update_metadata(
+        doc_id,
+        owner=payload.get("owner", ""),
+        counterparty=payload.get("counterparty", ""),
+        contract_type=payload.get("contract_type", ""),
+        effective_date=payload.get("effective_date", ""),
+        expiry_date=payload.get("expiry_date", ""),
+        renewal_date=payload.get("renewal_date", ""),
+    )
+    if not updated:
+        return jsonify(error="Document not found"), 404
+    return jsonify(updated.model_dump())
+
+
 @app.get("/api/documents/<doc_id>/report")
 def report(doc_id: str):
     document = get_document(doc_id)
@@ -177,7 +203,5 @@ def compare():
         summary=f"Znaleziono {len(differences)} istotne różnice między dokumentami.",
         differences=[difference.model_dump() for difference in differences],
     )
-
-
 if __name__ == "__main__":
     app.run(debug=True, port=5050)
