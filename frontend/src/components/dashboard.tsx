@@ -40,6 +40,10 @@ type ChatMessage = {
   content: string;
   citations?: DocumentItem["fragments"];
 };
+type Notice = {
+  tone: "success" | "error";
+  message: string;
+};
 
 const severityStyles = {
   low: "bg-emerald-50 text-emerald-700",
@@ -88,6 +92,8 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [documentSearch, setDocumentSearch] = useState("");
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
   const visibleDocuments = useMemo(() => {
     return items.filter((document) => {
@@ -133,6 +139,8 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
   async function askQuestion() {
     if (!question.trim() || !selected) return;
     const currentQuestion = question.trim();
+    setBusyAction("question");
+    setNotice(null);
     setMessages((current) => [...current, { role: "user", content: currentQuestion }]);
     if (!selected.id.startsWith("demo-")) {
       const payload = await askDocumentQuestion(selected.id, currentQuestion);
@@ -149,6 +157,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
           detail: currentQuestion,
         });
         setQuestion("");
+        setBusyAction(null);
         return;
       }
     }
@@ -175,33 +184,56 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
       detail: currentQuestion,
     });
     setQuestion("");
+    setBusyAction(null);
   }
 
   async function uploadDocument(file?: File) {
     if (!file) return;
+    setBusyAction("upload");
+    setNotice(null);
     const created = await uploadDocumentRequest(file);
-    if (!created) return;
+    if (!created) {
+      setBusyAction(null);
+      setNotice({ tone: "error", message: "Upload failed. Try again." });
+      return;
+    }
     setItems((current) => [created, ...current]);
     setSelectedId(created.id);
     syncMetadataDraft(created);
     setView("document");
+    setBusyAction(null);
+    setNotice({ tone: "success", message: "Document uploaded." });
   }
 
   async function uploadMany(files?: FileList | null) {
     if (!files?.length) return;
+    setBusyAction("bulk-upload");
+    setNotice(null);
     const created = await uploadDocuments(Array.from(files));
-    if (!created.length) return;
+    if (!created.length) {
+      setBusyAction(null);
+      setNotice({ tone: "error", message: "Bulk upload failed. Try again." });
+      return;
+    }
     setItems((current) => [...created, ...current]);
     setSelectedId(created[0].id);
     syncMetadataDraft(created[0]);
     setView("document");
+    setBusyAction(null);
+    setNotice({ tone: "success", message: `${created.length} document(s) uploaded.` });
   }
 
   async function uploadVersion(file?: File) {
     if (!file || !selected) return;
+    setBusyAction("version");
+    setNotice(null);
     if (!selected.id.startsWith("demo-")) {
       const created = await uploadDocumentVersion(selected.id, file);
-      if (!created) return;
+      if (!created) {
+        setBusyAction(null);
+        setNotice({ tone: "error", message: "Version upload failed." });
+        return;
+      }
       setItems((current) => [
         created,
         ...current.map((item) =>
@@ -210,6 +242,8 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
       ]);
       setSelectedId(created.id);
       syncMetadataDraft(created);
+      setBusyAction(null);
+      setNotice({ tone: "success", message: "New version uploaded." });
       return;
     }
     const created = {
@@ -230,14 +264,22 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
       ),
     ]);
     setSelectedId(created.id);
+    setBusyAction(null);
+    setNotice({ tone: "success", message: "New version uploaded." });
   }
 
   async function shareDocument() {
     if (!selected || !shareEmail.trim()) return;
+    setBusyAction("share");
+    setNotice(null);
     if (!selected.id.startsWith("demo-")) {
       const updated = await shareDocumentRequest(selected.id, shareEmail);
       if (updated) {
         setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      } else {
+        setNotice({ tone: "error", message: "Sharing failed." });
+        setBusyAction(null);
+        return;
       }
     } else {
       setItems((current) =>
@@ -256,10 +298,14 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
       );
     }
     setShareEmail("");
+    setBusyAction(null);
+    setNotice({ tone: "success", message: "Document shared." });
   }
 
   async function runComparison() {
     if (!selected || !compareId) return;
+    setBusyAction("compare");
+    setNotice(null);
     if (!selected.id.startsWith("demo-") && !compareId.startsWith("demo-")) {
       setComparison(await compareDocuments(selected.id, compareId));
       addLocalActivity(selected.id, {
@@ -267,6 +313,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
         label: "Compared with another contract",
         detail: `Compared with ${items.find((item) => item.id === compareId)?.filename ?? "another document"}.`,
       });
+      setBusyAction(null);
       return;
     }
     const other = items.find((item) => item.id === compareId);
@@ -294,12 +341,18 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
       label: "Compared with another contract",
       detail: `Compared with ${other?.filename ?? "another document"}.`,
     });
+    setBusyAction(null);
   }
 
   async function generateReport() {
     if (!selected) return;
+    setBusyAction("report");
+    setNotice(null);
     if (!selected.id.startsWith("demo-")) {
-      setReport(await fetchReport(selected.id));
+      const nextReport = await fetchReport(selected.id);
+      setReport(nextReport);
+      setBusyAction(null);
+      setNotice(nextReport ? { tone: "success", message: "Report generated." } : { tone: "error", message: "Report generation failed." });
       return;
     }
     const riskLines = selected.summary.risks.length
@@ -349,14 +402,22 @@ ${missingClauseLines}
 ## Supporting passages
 ${passageLines}`,
     });
+    setBusyAction(null);
+    setNotice({ tone: "success", message: "Report generated." });
   }
 
   async function addComment() {
     if (!selected || !commentBody.trim()) return;
+    setBusyAction("comment");
+    setNotice(null);
     if (!selected.id.startsWith("demo-")) {
       const updated = await addDocumentComment(selected.id, email || "reviewer@local", commentBody);
       if (updated) {
         setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      } else {
+        setNotice({ tone: "error", message: "Comment could not be saved." });
+        setBusyAction(null);
+        return;
       }
     } else {
       setItems((current) =>
@@ -375,15 +436,22 @@ ${passageLines}`,
       );
     }
     setCommentBody("");
+    setBusyAction(null);
+    setNotice({ tone: "success", message: "Comment added." });
   }
 
   async function updateReviewStatus(status: ReviewStatus) {
     if (!selected) return;
+    setBusyAction("status");
+    setNotice(null);
     if (!selected.id.startsWith("demo-")) {
       const updated = await updateDocumentStatus(selected.id, status);
       if (updated) {
         setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      } else {
+        setNotice({ tone: "error", message: "Status update failed." });
       }
+      setBusyAction(null);
       return;
     }
     setItems((current) =>
@@ -400,15 +468,22 @@ ${passageLines}`,
           : item,
       ),
     );
+    setBusyAction(null);
+    setNotice({ tone: "success", message: "Review status updated." });
   }
 
   async function saveMetadata() {
     if (!selected) return;
+    setBusyAction("metadata");
+    setNotice(null);
     if (!selected.id.startsWith("demo-")) {
       const updated = await saveDocumentMetadata(selected.id, metadataDraft);
       if (updated) {
         setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      } else {
+        setNotice({ tone: "error", message: "Metadata save failed." });
       }
+      setBusyAction(null);
       return;
     }
     setItems((current) =>
@@ -425,6 +500,8 @@ ${passageLines}`,
           : item,
       ),
     );
+    setBusyAction(null);
+    setNotice({ tone: "success", message: "Metadata saved." });
   }
 
   function downloadReport() {
@@ -499,6 +576,13 @@ ${passageLines}`,
 
   return (
     <main className="min-h-screen bg-mist p-5">
+      {notice && (
+        <div className={`mx-auto mb-5 max-w-[1440px] rounded-2xl px-4 py-3 text-sm font-medium ${
+          notice.tone === "success" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+        }`}>
+          {notice.message}
+        </div>
+      )}
       <div className="mx-auto grid max-w-[1440px] grid-cols-[250px_minmax(0,1fr)] gap-5">
         <aside className="rounded-[28px] bg-white p-5 shadow-panel">
           <div className="mb-8 text-2xl font-semibold tracking-tight">ClausePilot</div>
@@ -602,6 +686,7 @@ ${passageLines}`,
               downloadReport={downloadReport}
               report={report}
               uploadVersion={uploadVersion}
+              busyAction={busyAction}
             />
           )}
           {view === "compare" && selected && (
@@ -798,6 +883,7 @@ function DocumentWorkspace(props: {
   downloadReport: () => void;
   report: ReportResult | null;
   uploadVersion: (file?: File) => void;
+  busyAction: string | null;
 }) {
   const { selected } = props;
   return (
@@ -836,8 +922,8 @@ function DocumentWorkspace(props: {
             <input type="date" value={props.metadataDraft.expiry_date} onChange={(event) => props.setMetadataDraft({ ...props.metadataDraft, expiry_date: event.target.value })} className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
             <input type="date" value={props.metadataDraft.renewal_date} onChange={(event) => props.setMetadataDraft({ ...props.metadataDraft, renewal_date: event.target.value })} className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
           </div>
-          <button onClick={props.saveMetadata} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium">
-            Save metadata
+          <button disabled={props.busyAction === "metadata"} onClick={props.saveMetadata} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium disabled:opacity-60">
+            {props.busyAction === "metadata" ? "Saving..." : "Save metadata"}
           </button>
         </Panel>
         <Panel title="Review status">
@@ -866,6 +952,7 @@ function DocumentWorkspace(props: {
             {(["draft", "in_review", "approved"] as const).map((status) => (
               <button
                 key={status}
+                disabled={props.busyAction === "status"}
                 onClick={() => props.updateReviewStatus(status)}
                 className={`rounded-2xl px-3 py-2 text-xs font-medium ${
                   selected.review_status === status ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-600"
@@ -908,7 +995,9 @@ function DocumentWorkspace(props: {
             </div>
           )}
           <textarea value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Np. jaki jest termin wypowiedzenia?" className="min-h-24 w-full rounded-2xl border border-line p-4 text-sm outline-none" />
-          <button onClick={props.askQuestion} className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white">Ask</button>
+          <button disabled={props.busyAction === "question"} onClick={props.askQuestion} className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white disabled:opacity-60">
+            {props.busyAction === "question" ? "Thinking..." : "Ask"}
+          </button>
           <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">{props.answer}</div>
           {props.citations.length > 0 && (
             <div className="mt-4 space-y-3">
@@ -928,18 +1017,20 @@ function DocumentWorkspace(props: {
         </Panel>
         <Panel title="Share document">
           <input value={props.shareEmail} onChange={(event) => props.setShareEmail(event.target.value)} placeholder="email współpracownika" className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
-          <button onClick={props.shareDocument} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium">Share</button>
+          <button disabled={props.busyAction === "share"} onClick={props.shareDocument} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium disabled:opacity-60">
+            {props.busyAction === "share" ? "Sharing..." : "Share"}
+          </button>
           <p className="mt-3 text-sm text-slate-500">{selected.shared_with.join(", ") || "Jeszcze nikomu nie udostępniono."}</p>
         </Panel>
         <Panel title="Document version">
           <label className="block cursor-pointer rounded-2xl border border-line px-4 py-3 text-center text-sm font-medium">
-            Upload new version
+            {props.busyAction === "version" ? "Uploading..." : "Upload new version"}
             <input type="file" accept=".pdf,.txt" className="hidden" onChange={(event) => props.uploadVersion(event.target.files?.[0])} />
           </label>
         </Panel>
         <Panel title="Export report">
-          <button onClick={props.generateReport} className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white">
-            Generate report
+          <button disabled={props.busyAction === "report"} onClick={props.generateReport} className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white disabled:opacity-60">
+            {props.busyAction === "report" ? "Generating..." : "Generate report"}
           </button>
           {props.report && (
             <>
@@ -954,8 +1045,8 @@ function DocumentWorkspace(props: {
         </Panel>
         <Panel title="Review comments">
           <textarea value={props.commentBody} onChange={(event) => props.setCommentBody(event.target.value)} placeholder="Dodaj komentarz do umowy..." className="min-h-24 w-full rounded-2xl border border-line p-4 text-sm outline-none" />
-          <button onClick={props.addComment} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium">
-            Add comment
+          <button disabled={props.busyAction === "comment"} onClick={props.addComment} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium disabled:opacity-60">
+            {props.busyAction === "comment" ? "Saving..." : "Add comment"}
           </button>
           <div className="mt-4 space-y-3">
             {selected.comments.length ? selected.comments.map((comment, index) => (
