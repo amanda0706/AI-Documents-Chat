@@ -5,6 +5,9 @@ const demoDocuments = [
   {
     id: "demo-1",
     filename: "Master Services Agreement.pdf",
+    version_group_id: "demo-1",
+    version_number: 2,
+    is_latest_version: true,
     page_count: 3,
     shared_with: ["anna@firma.pl"],
     owner: "anna@firma.pl",
@@ -85,6 +88,9 @@ const demoDocuments = [
   {
     id: "demo-2",
     filename: "Supplier Agreement.pdf",
+    version_group_id: "demo-2",
+    version_number: 1,
+    is_latest_version: true,
     page_count: 2,
     shared_with: [],
     owner: "marta@firma.pl",

@@ -7,7 +7,9 @@ from backend.app import store
 from backend.app.store import (
     add_comment,
     create_document,
+    create_document_version,
     get_document,
+    list_document_versions,
     update_metadata,
     update_review_status,
 )
@@ -87,3 +89,17 @@ def test_metadata_can_be_updated() -> None:
     assert updated.contract_type == "MSA"
     assert updated.renewal_date == "2026-11-30"
     assert updated.activity[0].type == "metadata"
+
+
+def test_new_document_versions_share_group_and_track_latest() -> None:
+    first = create_document("agreement-v1.txt", ["Payment terms are net 60 days."], build_summary())
+    second = create_document_version(first.id, "agreement-v2.txt", ["Payment terms are net 30 days."], build_summary())
+
+    assert second is not None
+    assert second.version_group_id == first.id
+    assert second.version_number == 2
+    assert second.is_latest_version is True
+
+    versions = list_document_versions(first.id)
+    assert [item.version_number for item in versions] == [2, 1]
+    assert versions[1].is_latest_version is False

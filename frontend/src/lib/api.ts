@@ -77,6 +77,17 @@ export async function uploadDocument(file: File): Promise<DocumentItem | null> {
   return response.json();
 }
 
+export async function uploadDocumentVersion(documentId: string, file: File): Promise<DocumentItem | null> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(`${API_URL}/documents/${documentId}/versions`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
 export async function shareDocument(documentId: string, email: string): Promise<DocumentItem | null> {
   const response = await fetch(`${API_URL}/documents/${documentId}/share`, {
     method: "POST",

@@ -58,6 +58,9 @@ class DocumentSummary(BaseModel):
 class DocumentDetail(BaseModel):
     id: str
     filename: str
+    version_group_id: str = ""
+    version_number: int = 1
+    is_latest_version: bool = True
     page_count: int
     shared_with: list[str]
     owner: str = ""

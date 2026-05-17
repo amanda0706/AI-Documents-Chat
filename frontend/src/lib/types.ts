@@ -43,6 +43,9 @@ export type DocumentSummary = {
 export type DocumentItem = {
   id: string;
   filename: string;
+  version_group_id: string;
+  version_number: number;
+  is_latest_version: boolean;
   page_count: number;
   shared_with: string[];
   owner: string;

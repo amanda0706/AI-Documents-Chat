@@ -10,6 +10,7 @@ import {
   shareDocument as shareDocumentRequest,
   updateDocumentStatus,
   uploadDocument as uploadDocumentRequest,
+  uploadDocumentVersion,
 } from "@/lib/api";
 import type {
   ComparisonResult,
@@ -183,6 +184,41 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
     setSelectedId(created.id);
     syncMetadataDraft(created);
     setView("document");
+  }
+
+  async function uploadVersion(file?: File) {
+    if (!file || !selected) return;
+    if (!selected.id.startsWith("demo-")) {
+      const created = await uploadDocumentVersion(selected.id, file);
+      if (!created) return;
+      setItems((current) => [
+        created,
+        ...current.map((item) =>
+          item.version_group_id === created.version_group_id ? { ...item, is_latest_version: false } : item,
+        ),
+      ]);
+      setSelectedId(created.id);
+      syncMetadataDraft(created);
+      return;
+    }
+    const created = {
+      ...selected,
+      id: `${selected.version_group_id}-v${selected.version_number + 1}`,
+      filename: file.name,
+      version_number: selected.version_number + 1,
+      is_latest_version: true,
+      activity: [
+        { type: "version", label: "New version uploaded", detail: `Version ${selected.version_number + 1} created.` },
+        ...selected.activity,
+      ],
+    };
+    setItems((current) => [
+      created,
+      ...current.map((item) =>
+        item.version_group_id === selected.version_group_id ? { ...item, is_latest_version: false } : item,
+      ),
+    ]);
+    setSelectedId(created.id);
   }
 
   async function shareDocument() {
@@ -554,6 +590,7 @@ ${passageLines}`,
               generateReport={generateReport}
               downloadReport={downloadReport}
               report={report}
+              uploadVersion={uploadVersion}
             />
           )}
           {view === "compare" && selected && (
@@ -749,6 +786,7 @@ function DocumentWorkspace(props: {
   generateReport: () => void;
   downloadReport: () => void;
   report: ReportResult | null;
+  uploadVersion: (file?: File) => void;
 }) {
   const { selected } = props;
   return (
@@ -758,6 +796,9 @@ function DocumentWorkspace(props: {
           <div>
             <p className="text-sm text-slate-400">Current document</p>
             <h1 className="text-2xl font-semibold tracking-tight">{selected.filename}</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Version {selected.version_number} {selected.is_latest_version ? "· latest" : ""}
+            </p>
           </div>
           <input value={props.query} onChange={(event) => props.setQuery(event.target.value)} placeholder="Search fragments" className="w-64 rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
         </div>
@@ -878,6 +919,12 @@ function DocumentWorkspace(props: {
           <input value={props.shareEmail} onChange={(event) => props.setShareEmail(event.target.value)} placeholder="email współpracownika" className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
           <button onClick={props.shareDocument} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium">Share</button>
           <p className="mt-3 text-sm text-slate-500">{selected.shared_with.join(", ") || "Jeszcze nikomu nie udostępniono."}</p>
+        </Panel>
+        <Panel title="Document version">
+          <label className="block cursor-pointer rounded-2xl border border-line px-4 py-3 text-center text-sm font-medium">
+            Upload new version
+            <input type="file" accept=".pdf,.txt" className="hidden" onChange={(event) => props.uploadVersion(event.target.files?.[0])} />
+          </label>
         </Panel>
         <Panel title="Export report">
           <button onClick={props.generateReport} className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white">

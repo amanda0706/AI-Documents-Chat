@@ -30,9 +30,24 @@ def save_all(payload: dict[str, dict]) -> None:
     temp_file.replace(INDEX_FILE)
 
 
-def create_document(filename: str, page_texts: list[str], summary: DocumentSummary) -> DocumentDetail:
+def create_document(
+    filename: str,
+    page_texts: list[str],
+    summary: DocumentSummary,
+    *,
+    version_group_id: str | None = None,
+) -> DocumentDetail:
     documents = load_all()
     doc_id = str(uuid4())
+    group_id = version_group_id or doc_id
+    previous_versions = [
+        payload
+        for payload in documents.values()
+        if payload.get("version_group_id", payload["id"]) == group_id
+    ]
+    version_number = len(previous_versions) + 1
+    for payload in previous_versions:
+        payload["is_latest_version"] = False
     fragments = [
         DocumentFragment(id=f"{doc_id}-{index}", page=index + 1, text=text)
         for index, text in enumerate(page_texts)
@@ -41,6 +56,9 @@ def create_document(filename: str, page_texts: list[str], summary: DocumentSumma
     detail = DocumentDetail(
         id=doc_id,
         filename=filename,
+        version_group_id=group_id,
+        version_number=version_number,
+        is_latest_version=True,
         page_count=len(page_texts),
         shared_with=[],
         owner="",
@@ -64,6 +82,36 @@ def create_document(filename: str, page_texts: list[str], summary: DocumentSumma
     documents[doc_id] = detail.model_dump()
     save_all(documents)
     return detail
+
+
+def create_document_version(
+    source_doc_id: str,
+    filename: str,
+    page_texts: list[str],
+    summary: DocumentSummary,
+) -> DocumentDetail | None:
+    source = get_document(source_doc_id)
+    if not source:
+        return None
+    return create_document(
+        filename,
+        page_texts,
+        summary,
+        version_group_id=source.version_group_id or source.id,
+    )
+
+
+def list_document_versions(doc_id: str) -> list[DocumentDetail]:
+    source = get_document(doc_id)
+    if not source:
+        return []
+    group_id = source.version_group_id or source.id
+    versions = [
+        DocumentDetail(**payload)
+        for payload in load_all().values()
+        if payload.get("version_group_id", payload["id"]) == group_id
+    ]
+    return sorted(versions, key=lambda item: item.version_number, reverse=True)
 
 
 def list_documents() -> list[DocumentDetail]:

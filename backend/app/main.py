@@ -27,7 +27,9 @@ from .store import (
     add_activity,
     add_comment,
     create_document,
+    create_document_version,
     get_document,
+    list_document_versions,
     list_documents,
     share_document,
     update_review_status,
@@ -93,6 +95,37 @@ async def upload_document(file: UploadFile = File(...)):
     all_text = "\n".join(page_texts)
     summary = provider.summarize_document(file.filename, all_text)
     return create_document(file.filename, page_texts, summary)
+
+
+@app.post("/documents/{doc_id}/versions")
+async def upload_document_version(doc_id: str, file: UploadFile = File(...)):
+    if not file.filename.lower().endswith((".pdf", ".txt")):
+        raise HTTPException(status_code=400, detail="Only PDF and TXT files are supported")
+
+    raw = await file.read()
+    temp_path = UPLOADS_DIR / file.filename
+    temp_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path.write_bytes(raw)
+
+    if file.filename.lower().endswith(".pdf"):
+        reader = PdfReader(temp_path)
+        page_texts = [(page.extract_text() or "").strip() for page in reader.pages]
+    else:
+        page_texts = [temp_path.read_text(encoding="utf-8").strip()]
+    all_text = "\n".join(page_texts)
+    summary = provider.summarize_document(file.filename, all_text)
+    created = create_document_version(doc_id, file.filename, page_texts, summary)
+    if not created:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return created
+
+
+@app.get("/documents/{doc_id}/versions")
+def document_versions(doc_id: str):
+    versions = list_document_versions(doc_id)
+    if not versions:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return versions
 
 
 @app.get("/documents/{doc_id}/search")
