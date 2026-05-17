@@ -1,0 +1,93 @@
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from backend.app import store
+from backend.app.main import app
+
+
+@pytest.fixture(autouse=True)
+def isolated_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(store, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(store, "UPLOADS_DIR", tmp_path / "uploads")
+    monkeypatch.setattr(store, "INDEX_FILE", tmp_path / "documents.json")
+
+
+@pytest.fixture()
+def client() -> TestClient:
+    return TestClient(app)
+
+
+def upload_contract(client: TestClient, filename: str = "agreement.txt") -> dict:
+    response = client.post(
+        "/documents/upload",
+        files={"file": (filename, b"Payment terms are net 60 days. Either party may terminate with 90 days notice.")},
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def test_health_endpoint(client: TestClient) -> None:
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_document_review_flow_through_api(client: TestClient) -> None:
+    document = upload_contract(client)
+    document_id = document["id"]
+
+    ask_response = client.post(f"/documents/{document_id}/ask", json={"question": "What are the payment terms?"})
+    share_response = client.post(f"/documents/{document_id}/share", json={"email": "anna@example.com"})
+    status_response = client.post(f"/documents/{document_id}/status", json={"status": "in_review"})
+    metadata_response = client.post(
+        f"/documents/{document_id}/metadata",
+        json={
+            "owner": "anna@example.com",
+            "counterparty": "Northwind Labs",
+            "contract_type": "MSA",
+            "effective_date": "2026-01-01",
+            "expiry_date": "2026-12-31",
+            "renewal_date": "2026-11-30",
+        },
+    )
+    report_response = client.get(f"/documents/{document_id}/report")
+
+    assert ask_response.status_code == 200
+    assert ask_response.json()["citations"]
+    assert share_response.status_code == 200
+    assert share_response.json()["shared_with"] == ["anna@example.com"]
+    assert status_response.status_code == 200
+    assert status_response.json()["review_status"] == "in_review"
+    assert metadata_response.status_code == 200
+    assert metadata_response.json()["counterparty"] == "Northwind Labs"
+    assert report_response.status_code == 200
+    assert "# Contract Review Report" in report_response.json()["markdown"]
+
+
+def test_api_rejects_invalid_status_and_invalid_metadata_dates(client: TestClient) -> None:
+    document = upload_contract(client)
+    document_id = document["id"]
+
+    invalid_status = client.post(f"/documents/{document_id}/status", json={"status": "waiting"})
+    invalid_date = client.post(f"/documents/{document_id}/metadata", json={"expiry_date": "2026-99-99"})
+
+    assert invalid_status.status_code == 422
+    assert invalid_date.status_code == 422
+
+
+def test_compare_endpoint_returns_document_differences(client: TestClient) -> None:
+    first = upload_contract(client, "msa.txt")
+    second_response = client.post(
+        "/documents/upload",
+        files={"file": ("supplier.txt", b"Payment terms are net 30 days. Either party may terminate with 30 days notice.")},
+    )
+    assert second_response.status_code == 200
+    second = second_response.json()
+
+    response = client.post("/compare", json={"left_id": first["id"], "right_id": second["id"]})
+
+    assert response.status_code == 200
+    assert response.json()["differences"]

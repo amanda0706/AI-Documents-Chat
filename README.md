@@ -255,5 +255,6 @@ This repository demonstrates:
 - workflow thinking through comments, statuses, and review queues,
 - document export flows for downstream collaboration,
 - test coverage for core analysis rules,
+- API tests for the main document review flow,
 - UI design for a product-style dashboard,
 - a clean migration path from local prototype to cloud product.
