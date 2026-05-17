@@ -12,7 +12,10 @@ def build_deadlines(documents: list[DocumentDetail]) -> list[DeadlineItem]:
         for kind, raw_date in (("expiry", document.expiry_date), ("renewal", document.renewal_date)):
             if not raw_date:
                 continue
-            due_date = date.fromisoformat(raw_date)
+            try:
+                due_date = date.fromisoformat(raw_date)
+            except ValueError:
+                continue
             days_remaining = (due_date - today).days
             if 0 <= days_remaining <= 60:
                 items.append(

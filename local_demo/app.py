@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 from app.models import ActivityItem, CommentItem  # noqa: E402
 from app.deadlines import build_deadlines  # noqa: E402
 from app.providers import get_provider  # noqa: E402
+from app.services import build_report  # noqa: E402
 from app.store import add_activity, add_comment, create_document, get_document, list_documents, share_document, update_metadata as store_update_metadata, update_review_status  # noqa: E402
 
 
@@ -143,40 +144,7 @@ def report(doc_id: str):
     document = get_document(doc_id)
     if not document:
         return jsonify(error="Document not found"), 404
-    risk_lines = "\n".join(
-        f"- **{risk.title}** ({risk.severity}) — {risk.explanation}"
-        for risk in document.summary.risks
-    ) or "- No material risks detected."
-    suggestion_lines = "\n".join(
-        f"- **{suggestion.title}** — {suggestion.rationale}\n  - Suggested text: `{suggestion.proposed_text}`"
-        for suggestion in document.summary.suggestions
-    ) or "- No suggested edits."
-    passage_lines = "\n".join(
-        f"- Page {fragment.page}: {fragment.text}"
-        for fragment in document.fragments[:3]
-    ) or "- No passages available."
-    markdown = f"""# Contract Review Report
-
-## Document
-{document.filename}
-
-## Executive summary
-{document.summary.summary}
-
-## Risk score
-{document.summary.overall_score}/100
-
-## Key risks
-{risk_lines}
-
-## Suggested edits
-{suggestion_lines}
-
-## Supporting passages
-{passage_lines}
-"""
-    return jsonify(filename=document.filename, markdown=markdown)
-
+    return jsonify(build_report(document).model_dump())
 
 @app.post("/api/compare")
 def compare():

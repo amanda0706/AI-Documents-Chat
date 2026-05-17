@@ -38,3 +38,8 @@ def test_deadlines_ignore_far_future_dates() -> None:
     items = build_deadlines([build_document(expiry_date=expiry)])
 
     assert items == []
+
+
+def test_deadlines_ignore_invalid_dates() -> None:
+    items = build_deadlines([build_document(expiry_date="not-a-date")])
+    assert items == []

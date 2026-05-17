@@ -34,6 +34,7 @@ from .store import (
     update_metadata,
 )
 from .providers import get_provider
+from .services import build_dashboard_stats, build_report, compare_contracts
 
 
 app = FastAPI(title="ClausePilot API")
@@ -54,27 +55,7 @@ def health() -> dict[str, str]:
 
 @app.get("/dashboard", response_model=DashboardStats)
 def dashboard():
-    documents = list_documents()
-    total = len(documents)
-    high_risk = sum(
-        1 for document in documents if any(risk.severity == "high" for risk in document.summary.risks)
-    )
-    average = round(sum(document.summary.overall_score for document in documents) / total) if total else 0
-    shared = sum(1 for document in documents if document.shared_with)
-    pending_review = sum(1 for document in documents if document.review_status == "in_review")
-    approved = sum(1 for document in documents if document.review_status == "approved")
-    deadlines = build_deadlines(documents)
-    return DashboardStats(
-        total_documents=total,
-        high_risk_documents=high_risk,
-        average_score=average,
-        shared_documents=shared,
-        pending_review_documents=pending_review,
-        approved_documents=approved,
-        expiring_soon_documents=sum(1 for item in deadlines if item.kind == "expiry"),
-        renewal_due_documents=sum(1 for item in deadlines if item.kind == "renewal"),
-    )
-
+    return build_dashboard_stats(list_documents())
 
 @app.get("/deadlines", response_model=list[DeadlineItem])
 def deadlines():
@@ -191,40 +172,7 @@ def document_report(doc_id: str):
     item = get_document(doc_id)
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
-    risk_lines = "\n".join(
-        f"- **{risk.title}** ({risk.severity}) — {risk.explanation}"
-        for risk in item.summary.risks
-    ) or "- No material risks detected."
-    suggestion_lines = "\n".join(
-        f"- **{suggestion.title}** — {suggestion.rationale}\n  - Suggested text: `{suggestion.proposed_text}`"
-        for suggestion in item.summary.suggestions
-    ) or "- No suggested edits."
-    passage_lines = "\n".join(
-        f"- Page {fragment.page}: {fragment.text}"
-        for fragment in item.fragments[:3]
-    ) or "- No passages available."
-    markdown = f"""# Contract Review Report
-
-## Document
-{item.filename}
-
-## Executive summary
-{item.summary.summary}
-
-## Risk score
-{item.summary.overall_score}/100
-
-## Key risks
-{risk_lines}
-
-## Suggested edits
-{suggestion_lines}
-
-## Supporting passages
-{passage_lines}
-"""
-    return ReportResponse(filename=item.filename, markdown=markdown)
-
+    return build_report(item)
 
 @app.post("/compare", response_model=ComparisonResponse)
 def compare(payload: CompareRequest):
@@ -233,14 +181,7 @@ def compare(payload: CompareRequest):
     if not left or not right:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    left_text = "\n".join(fragment.text for fragment in left.fragments)
-    right_text = "\n".join(fragment.text for fragment in right.fragments)
-    differences = provider.compare(left_text, right_text)
-    summary = (
-        f"Znaleziono {len(differences)} istotne różnice między dokumentami."
-        if differences
-        else "Nie wykryto istotnych różnic na podstawie lokalnych reguł."
-    )
+    comparison = compare_contracts(left, right, provider)
     add_activity(
         left.id,
         ActivityItem(
@@ -249,9 +190,4 @@ def compare(payload: CompareRequest):
             detail=f"Compared with {right.filename}.",
         ),
     )
-    return ComparisonResponse(
-        left_filename=left.filename,
-        right_filename=right.filename,
-        summary=summary,
-        differences=differences,
-    )
+    return comparison

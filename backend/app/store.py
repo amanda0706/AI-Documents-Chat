@@ -25,7 +25,9 @@ def load_all() -> dict[str, dict]:
 
 def save_all(payload: dict[str, dict]) -> None:
     ensure_store()
-    INDEX_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    temp_file = INDEX_FILE.with_suffix(".tmp")
+    temp_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    temp_file.replace(INDEX_FILE)
 
 
 def create_document(filename: str, page_texts: list[str], summary: DocumentSummary) -> DocumentDetail:
