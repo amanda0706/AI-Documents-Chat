@@ -31,6 +31,10 @@ def build_report(document: DocumentDetail) -> ReportResponse:
         f"- **{suggestion.title}** — {suggestion.rationale}\n  - Suggested text: `{suggestion.proposed_text}`"
         for suggestion in document.summary.suggestions
     ) or "- No suggested edits."
+    missing_clause_lines = "\n".join(
+        f"- **{clause.title}** ? {clause.why_it_matters}"
+        for clause in document.summary.missing_clauses
+    ) or "- No expected clauses missing."
     passage_lines = "\n".join(
         f"- Page {fragment.page}: {fragment.text}"
         for fragment in document.fragments[:3]
@@ -51,6 +55,9 @@ def build_report(document: DocumentDetail) -> ReportResponse:
 
 ## Suggested edits
 {suggestion_lines}
+
+## Missing clauses
+{missing_clause_lines}
 
 ## Supporting passages
 {passage_lines}

@@ -18,6 +18,7 @@ def build_document(*, expiry_date: str = "", renewal_date: str = "") -> Document
             highlights=[],
             risks=[],
             suggestions=[],
+            missing_clauses=[],
             language="en",
             overall_score=100,
         ),

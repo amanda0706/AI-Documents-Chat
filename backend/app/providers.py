@@ -10,6 +10,7 @@ from .analyzer import (
     build_suggestions,
     compare_documents,
     detect_language,
+    find_missing_clauses,
     overall_score,
     summarize,
 )
@@ -39,6 +40,7 @@ class LocalProvider:
             highlights=summary_lines,
             risks=risks,
             suggestions=build_suggestions(risks),
+            missing_clauses=find_missing_clauses(text),
             language=detect_language(text),
             overall_score=overall_score(risks),
         )

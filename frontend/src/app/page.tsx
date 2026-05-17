@@ -60,6 +60,14 @@ const demoDocuments = [
           score: 25,
         },
       ],
+      missing_clauses: [
+        {
+          category: "governing_law",
+          title: "Governing law",
+          why_it_matters: "Brak tej klauzuli utrudnia ustalenie w?a?ciwego prawa.",
+          expected_signal: "governing law / jurisdiction",
+        },
+      ],
       suggestions: [
         {
           title: "Skróć termin płatności",
@@ -101,6 +109,7 @@ const demoDocuments = [
       language: "en",
       overall_score: 82,
       risks: [],
+      missing_clauses: [],
       suggestions: [],
     },
     fragments: [

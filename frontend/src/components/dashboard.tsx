@@ -268,6 +268,11 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
           )
           .join("\n")
       : "- No suggested edits.";
+    const missingClauseLines = selected.summary.missing_clauses.length
+      ? selected.summary.missing_clauses
+          .map((clause) => `- **${clause.title}** ? ${clause.why_it_matters}`)
+          .join("\n")
+      : "- No expected clauses missing.";
     const passageLines = selected.fragments
       .slice(0, 3)
       .map((fragment) => `- Page ${fragment.page}: ${fragment.text}`)
@@ -290,6 +295,9 @@ ${riskLines}
 
 ## Suggested edits
 ${suggestionLines}
+
+## Missing clauses
+${missingClauseLines}
 
 ## Supporting passages
 ${passageLines}`,
@@ -819,6 +827,17 @@ function DocumentWorkspace(props: {
         <Panel title={`Risk score · ${selected.summary.overall_score}/100`}>
           <div className="space-y-3">
             {selected.summary.risks.map((risk) => <RiskRow key={risk.category} risk={risk} />)}
+          </div>
+        </Panel>
+        <Panel title="Clause playbook">
+          <div className="space-y-3">
+            {selected.summary.missing_clauses.length ? selected.summary.missing_clauses.map((clause) => (
+              <div key={clause.category} className="rounded-2xl bg-amber-50 p-4 text-sm">
+                <div className="font-medium text-amber-900">{clause.title} missing</div>
+                <p className="mt-1 text-amber-800">{clause.why_it_matters}</p>
+                <p className="mt-2 text-xs text-amber-700">Expected signal: {clause.expected_signal}</p>
+              </div>
+            )) : <p className="text-sm text-slate-500">All expected clause families are present.</p>}
           </div>
         </Panel>
         <Panel title="Ask this contract">

@@ -22,12 +22,20 @@ export type SuggestionItem = {
   proposed_text: string;
 };
 
+export type MissingClauseItem = {
+  category: string;
+  title: string;
+  why_it_matters: string;
+  expected_signal: string;
+};
+
 export type DocumentSummary = {
   title: string;
   summary: string;
   highlights: string[];
   risks: RiskItem[];
   suggestions: SuggestionItem[];
+  missing_clauses: MissingClauseItem[];
   language: string;
   overall_score: number;
 };

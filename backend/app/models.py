@@ -37,12 +37,20 @@ class SuggestionItem(BaseModel):
     proposed_text: str
 
 
+class MissingClauseItem(BaseModel):
+    category: str
+    title: str
+    why_it_matters: str
+    expected_signal: str
+
+
 class DocumentSummary(BaseModel):
     title: str
     summary: str
     highlights: list[str]
     risks: list[RiskItem]
     suggestions: list[SuggestionItem]
+    missing_clauses: list[MissingClauseItem]
     language: str
     overall_score: int
 

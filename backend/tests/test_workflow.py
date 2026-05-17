@@ -27,6 +27,7 @@ def build_summary() -> DocumentSummary:
         highlights=[],
         risks=[],
         suggestions=[],
+        missing_clauses=[],
         language="en",
         overall_score=100,
     )

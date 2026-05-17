@@ -29,6 +29,7 @@ def build_document(
             highlights=[],
             risks=risks or [],
             suggestions=[],
+            missing_clauses=[],
             language="en",
             overall_score=score,
         ),

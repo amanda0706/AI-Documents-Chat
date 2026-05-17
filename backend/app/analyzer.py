@@ -4,7 +4,7 @@ import re
 from collections import Counter
 from dataclasses import dataclass
 
-from .models import DifferenceItem, RiskItem, SuggestionItem
+from .models import DifferenceItem, MissingClauseItem, RiskItem, SuggestionItem
 
 
 STOPWORDS = {
@@ -78,6 +78,44 @@ RISK_RULES = [
         "explanation": "Zakres poufności może być zbyt szeroki lub zbyt długi.",
         "recommendation": "Sprawdź czas obowiązywania i wyłączenia dla informacji publicznych.",
         "score": 10,
+    },
+]
+
+CLAUSE_PLAYBOOK = [
+    {
+        "category": "governing_law",
+        "title": "Governing law",
+        "signals": ("governing law", "laws of", "jurisdiction"),
+        "why_it_matters": "Określa, według jakiego prawa interpretowana jest umowa.",
+        "expected_signal": "governing law / jurisdiction",
+    },
+    {
+        "category": "confidentiality",
+        "title": "Confidentiality",
+        "signals": ("confidentiality", "confidential information", "non-disclosure"),
+        "why_it_matters": "Chroni informacje handlowe i dane przekazywane między stronami.",
+        "expected_signal": "confidentiality / non-disclosure",
+    },
+    {
+        "category": "termination",
+        "title": "Termination",
+        "signals": ("termination", "terminate", "written notice"),
+        "why_it_matters": "Definiuje, jak strony mogą zakończyć współpracę.",
+        "expected_signal": "termination / written notice",
+    },
+    {
+        "category": "liability",
+        "title": "Liability",
+        "signals": ("liability", "indirect damages", "consequential damages"),
+        "why_it_matters": "Ustala ekspozycję finansową i granice odpowiedzialności.",
+        "expected_signal": "liability / damages",
+    },
+    {
+        "category": "payment",
+        "title": "Payment terms",
+        "signals": ("payment terms", "invoice", "net 30", "net 60", "fees"),
+        "why_it_matters": "Określa przepływ pieniędzy i moment wymagalności płatności.",
+        "expected_signal": "payment terms / invoice",
     },
 ]
 
@@ -165,6 +203,20 @@ def build_suggestions(risks: list[RiskItem]) -> list[SuggestionItem]:
             )
         )
     return proposed
+
+
+def find_missing_clauses(text: str) -> list[MissingClauseItem]:
+    lowered = text.lower()
+    return [
+        MissingClauseItem(
+            category=clause["category"],
+            title=clause["title"],
+            why_it_matters=clause["why_it_matters"],
+            expected_signal=clause["expected_signal"],
+        )
+        for clause in CLAUSE_PLAYBOOK
+        if not any(signal in lowered for signal in clause["signals"])
+    ]
 
 
 def overall_score(risks: list[RiskItem]) -> int:
