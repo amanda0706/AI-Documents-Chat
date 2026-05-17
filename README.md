@@ -2,29 +2,30 @@
 
 ![Backend tests](https://github.com/amanda0706/AI-Documents-Chat/actions/workflows/backend-tests.yml/badge.svg)
 
-ClausePilot is a local-first **AI Contract / Document Assistant** for people who need to understand agreements quickly, compare versions, and spot risky clauses before sending them onward.
+> Local-first AI contract review workspace for summarizing agreements, asking grounded questions, comparing versions, and surfacing risky clauses before human review.
 
-## Preview
+ClausePilot is built as a practical **AI Contract / Document Assistant** rather than a toy chatbot: it keeps the source text close, explains why a clause matters, and supports the review work around the document itself.
+
+## Product snapshot
 
 ![ClausePilot interface concept](design/clausepilot-concept.png)
 
-## What it already does
+| Area | What it does |
+| --- | --- |
+| Understand | summaries, fragment search, grounded Q&A with citations |
+| Review | risk detection, scoring, suggested safer wording |
+| Compare | side-by-side contract comparison and impact notes |
+| Collaborate | comments, sharing, review statuses, activity history |
+| Operate | deadlines, review queue, dashboard, exportable reports |
 
-- upload PDF and TXT documents,
-- generate summaries,
-- search document fragments,
-- answer questions with supporting passages,
-- detect contract risks,
-- calculate an overall risk score,
-- suggest safer clause wording,
-- compare two documents,
-- share documents with collaborators,
-- show a lightweight dashboard,
-- keep a local document history,
-- export a reusable contract review report,
-- collect reviewer comments,
-- move contracts through a review workflow,
-- surface a review queue and filter documents by risk or review status.
+## Why it is useful
+
+Contract review is often slow, repetitive, and opaque for non-lawyers. ClausePilot shortens the first-pass review loop by helping users:
+
+1. find the important clauses,
+2. understand the commercial impact,
+3. keep every answer traceable to the original document,
+4. move the contract through a lightweight human review workflow.
 
 ## Feature highlights
 
@@ -51,10 +52,6 @@ Users can generate and download a markdown report that is ready to share or conv
 ## Why the project is built this way
 
 The product is intentionally developed **without cloud AI first**. That keeps the core workflow testable end-to-end while the local analysis layer acts as a clean substitute for the future provider layer.
-
-## Why this matters
-
-Contract review is often slow, repetitive, and hard to navigate for people who are not lawyers. ClausePilot is designed to shorten the first-pass review loop: surface the important parts, explain why they matter, and keep the original text close enough that the user can verify every answer.
 
 Current local engine:
 
@@ -201,6 +198,16 @@ Then open:
 7. Inspect the review queue, suggested edits, and supporting passages below the answer.
 8. Generate and download a contract review report.
 
+## What makes this portfolio-ready
+
+- Real product framing around a concrete workflow, not just generic chat
+- Full-stack delivery across Next.js and FastAPI
+- Explainable AI-oriented architecture with citations and a swappable provider layer
+- Workflow features beyond MVP: comments, status, deadlines, review queue, export
+- Automated backend and API tests
+- Fresh-clone bootstrap scripts for repeatable setup
+- Clear migration path from local prototype to hosted AI and cloud persistence
+
 ## Fresh-clone checklist
 
 After cloning the repository on a new machine:
@@ -241,20 +248,3 @@ The `samples/` directory contains two small contract examples that are useful wh
 4. Store files in S3 / Blob Storage
 5. Add audit log, comments, and workspace roles
 6. Deploy frontend + backend
-
-## Portfolio angle
-
-This repository demonstrates:
-
-- product thinking,
-- full-stack development across frontend and backend,
-- document processing with PDF extraction,
-- AI-oriented architecture with a swappable provider layer,
-- API design for upload, search, chat, sharing, and comparison flows,
-- explainability patterns through citations and risk scoring,
-- workflow thinking through comments, statuses, and review queues,
-- document export flows for downstream collaboration,
-- test coverage for core analysis rules,
-- API tests for the main document review flow,
-- UI design for a product-style dashboard,
-- a clean migration path from local prototype to cloud product.
