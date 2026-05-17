@@ -65,6 +65,12 @@ Current local engine:
 - deterministic suggestions,
 - local JSON persistence.
 
+Provider architecture:
+
+- a shared analysis provider contract,
+- a local provider active today,
+- a clean seam for future OpenAI / Azure OpenAI providers.
+
 Future provider layer:
 
 - OpenAI / Azure OpenAI for richer summaries and Q&A,
@@ -113,8 +119,10 @@ Next.js frontend
 FastAPI backend
       |
       +--> local document store
-      +--> local analyzer
-      +--> future AI provider adapter
+      +--> analysis provider interface
+              |
+              +--> local provider now
+              +--> hosted provider later
 ```
 
 The product is intentionally split so the user-facing workflow can stay stable while the intelligence layer evolves from local heuristics to hosted AI and vector search.
@@ -204,7 +212,7 @@ This repository demonstrates:
 - product thinking,
 - full-stack development across frontend and backend,
 - document processing with PDF extraction,
-- AI-oriented architecture with a swappable intelligence layer,
+- AI-oriented architecture with a swappable provider layer,
 - API design for upload, search, chat, sharing, and comparison flows,
 - explainability patterns through citations and risk scoring,
 - workflow thinking through comments, statuses, and review queues,

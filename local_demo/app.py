@@ -9,20 +9,13 @@ from pypdf import PdfReader
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
-from app.analyzer import (  # noqa: E402
-    analyze_risks,
-    answer_question,
-    build_suggestions,
-    compare_documents,
-    detect_language,
-    overall_score,
-    summarize,
-)
-from app.models import ActivityItem, CommentItem, DocumentSummary  # noqa: E402
+from app.models import ActivityItem, CommentItem  # noqa: E402
+from app.providers import get_provider  # noqa: E402
 from app.store import add_activity, add_comment, create_document, get_document, list_documents, share_document, update_review_status  # noqa: E402
 
 
 app = Flask(__name__)
+provider = get_provider()
 
 
 @app.get("/")
@@ -71,17 +64,7 @@ def upload():
     else:
         page_texts = [temp_path.read_text(encoding="utf-8").strip()]
     all_text = "\n".join(page_texts)
-    risks = analyze_risks(all_text)
-    summary_lines = summarize(all_text)
-    summary = DocumentSummary(
-        title=file.filename,
-        summary=" ".join(summary_lines) if summary_lines else "Nie udało się wygenerować streszczenia.",
-        highlights=summary_lines,
-        risks=risks,
-        suggestions=build_suggestions(risks),
-        language=detect_language(all_text),
-        overall_score=overall_score(risks),
-    )
+    summary = provider.summarize_document(file.filename, all_text)
     return jsonify(create_document(file.filename, page_texts, summary).model_dump())
 
 
@@ -91,7 +74,7 @@ def ask(doc_id: str):
     if not document:
         return jsonify(error="Document not found"), 404
     payload = request.get_json(force=True)
-    answer, relevant = answer_question(payload["question"], [fragment.text for fragment in document.fragments])
+    answer, relevant = provider.answer(payload["question"], [fragment.text for fragment in document.fragments])
     citations = [fragment.model_dump() for fragment in document.fragments if fragment.text in relevant]
     add_activity(
         doc_id,
@@ -176,7 +159,7 @@ def compare():
     right = get_document(payload["right_id"])
     if not left or not right:
         return jsonify(error="Document not found"), 404
-    differences = compare_documents(
+    differences = provider.compare(
         "\n".join(fragment.text for fragment in left.fragments),
         "\n".join(fragment.text for fragment in right.fragments),
     )

@@ -4,16 +4,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pypdf import PdfReader
 
-from .analyzer import (
-    analyze_risks,
-    answer_question,
-    build_suggestions,
-    compare_documents,
-    detect_language,
-    overall_score,
-    similarity_score,
-    summarize,
-)
+from .analyzer import similarity_score
 from .models import (
     ActivityItem,
     CommentItem,
@@ -21,7 +12,6 @@ from .models import (
     CompareRequest,
     ComparisonResponse,
     DashboardStats,
-    DocumentSummary,
     QuestionRequest,
     QuestionResponse,
     ReportResponse,
@@ -39,9 +29,11 @@ from .store import (
     share_document,
     update_review_status,
 )
+from .providers import get_provider
 
 
 app = FastAPI(title="ClausePilot API")
+provider = get_provider()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -106,17 +98,7 @@ async def upload_document(file: UploadFile = File(...)):
     else:
         page_texts = [temp_path.read_text(encoding="utf-8").strip()]
     all_text = "\n".join(page_texts)
-    summary_lines = summarize(all_text)
-    risks = analyze_risks(all_text)
-    summary = DocumentSummary(
-        title=file.filename,
-        summary=" ".join(summary_lines) if summary_lines else "Nie udało się wygenerować streszczenia.",
-        highlights=summary_lines,
-        risks=risks,
-        suggestions=build_suggestions(risks),
-        language=detect_language(all_text),
-        overall_score=overall_score(risks),
-    )
+    summary = provider.summarize_document(file.filename, all_text)
     return create_document(file.filename, page_texts, summary)
 
 
@@ -137,7 +119,7 @@ def ask_document(doc_id: str, payload: QuestionRequest):
     item = get_document(doc_id)
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
-    answer, relevant = answer_question(payload.question, [fragment.text for fragment in item.fragments])
+    answer, relevant = provider.answer(payload.question, [fragment.text for fragment in item.fragments])
     citations = [fragment for fragment in item.fragments if fragment.text in relevant]
     add_activity(
         doc_id,
@@ -225,7 +207,7 @@ def compare(payload: CompareRequest):
 
     left_text = "\n".join(fragment.text for fragment in left.fragments)
     right_text = "\n".join(fragment.text for fragment in right.fragments)
-    differences = compare_documents(left_text, right_text)
+    differences = provider.compare(left_text, right_text)
     summary = (
         f"Znaleziono {len(differences)} istotne różnice między dokumentami."
         if differences
