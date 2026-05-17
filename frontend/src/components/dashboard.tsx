@@ -10,6 +10,7 @@ import {
   shareDocument as shareDocumentRequest,
   updateDocumentStatus,
   uploadDocument as uploadDocumentRequest,
+  uploadDocuments,
   uploadDocumentVersion,
 } from "@/lib/api";
 import type {
@@ -183,6 +184,16 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
     setItems((current) => [created, ...current]);
     setSelectedId(created.id);
     syncMetadataDraft(created);
+    setView("document");
+  }
+
+  async function uploadMany(files?: FileList | null) {
+    if (!files?.length) return;
+    const created = await uploadDocuments(Array.from(files));
+    if (!created.length) return;
+    setItems((current) => [...created, ...current]);
+    setSelectedId(created[0].id);
+    syncMetadataDraft(created[0]);
     setView("document");
   }
 
@@ -470,7 +481,7 @@ ${passageLines}`,
           </p>
           <label className="mt-6 inline-block cursor-pointer rounded-2xl bg-accent px-5 py-3 font-medium text-white">
             Upload document
-            <input type="file" accept=".pdf,.txt" className="hidden" onChange={(event) => uploadDocument(event.target.files?.[0])} />
+            <input type="file" accept=".pdf,.txt" multiple className="hidden" onChange={(event) => uploadMany(event.target.files)} />
           </label>
           <button
             onClick={() => {
@@ -494,7 +505,7 @@ ${passageLines}`,
           <div className="mb-5 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{email}</div>
           <label className="mb-6 block cursor-pointer rounded-2xl bg-accent px-4 py-3 text-center text-sm font-medium text-white">
             Upload document
-            <input type="file" accept=".pdf,.txt" className="hidden" onChange={(event) => uploadDocument(event.target.files?.[0])} />
+            <input type="file" accept=".pdf,.txt" multiple className="hidden" onChange={(event) => uploadMany(event.target.files)} />
           </label>
           <nav className="mb-8 space-y-2">
             {[

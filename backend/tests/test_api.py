@@ -91,3 +91,16 @@ def test_compare_endpoint_returns_document_differences(client: TestClient) -> No
 
     assert response.status_code == 200
     assert response.json()["differences"]
+
+
+def test_bulk_upload_creates_multiple_documents(client: TestClient) -> None:
+    response = client.post(
+        "/documents/bulk-upload",
+        files=[
+            ("files", ("msa.txt", b"Payment terms are net 60 days.")),
+            ("files", ("supplier.txt", b"Payment terms are net 30 days.")),
+        ],
+    )
+
+    assert response.status_code == 200
+    assert [item["filename"] for item in response.json()] == ["msa.txt", "supplier.txt"]

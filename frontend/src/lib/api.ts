@@ -77,6 +77,17 @@ export async function uploadDocument(file: File): Promise<DocumentItem | null> {
   return response.json();
 }
 
+export async function uploadDocuments(files: File[]): Promise<DocumentItem[]> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+  const response = await fetch(`${API_URL}/documents/bulk-upload`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) return [];
+  return response.json();
+}
+
 export async function uploadDocumentVersion(documentId: string, file: File): Promise<DocumentItem | null> {
   const formData = new FormData();
   formData.append("file", file);
