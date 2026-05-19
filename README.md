@@ -18,6 +18,22 @@ ClausePilot is built as a practical **AI Contract / Document Assistant** rather 
 | Collaborate | comments, sharing, review statuses, activity history |
 | Operate | deadlines, review queue, dashboard, exportable reports |
 
+## Screenshots to capture
+
+For portfolio use, capture these three views after running the local demo:
+
+1. **Dashboard** - portfolio metrics, risk triage, review queue, deadlines.
+2. **Document workspace** - extracted clauses, AI summary, metadata, risk labels.
+3. **Compare contracts** - side-by-side differences with executive summary.
+
+Suggested filenames:
+
+```text
+docs/screenshots/dashboard.png
+docs/screenshots/document-workspace.png
+docs/screenshots/compare-contracts.png
+```
+
 ## Why it is useful
 
 Contract review is often slow, repetitive, and opaque for non-lawyers. ClausePilot shortens the first-pass review loop by helping users:
@@ -178,19 +194,19 @@ cd backend
 pip install -r requirements-ocr.txt
 ```
 
-You also need the Tesseract executable available on your machine. PyMuPDF invokes Tesseract for OCR pages, so the main app remains usable even when OCR is not installed. citeturn0search1turn1search0turn1search1turn0search3
+You also need the Tesseract executable available on your machine. PyMuPDF invokes Tesseract for OCR pages, so the main app remains usable even when OCR is not installed.
 
 ### Frontend
 
 ```powershell
 cd frontend
 npm install
-npm run dev
+npx next dev -p 3004
 ```
 
 Open:
 
-- frontend: `http://localhost:3000`
+- frontend: `http://localhost:3004`
 - backend docs: `http://localhost:8000/docs`
 
 ## Local demo fallback
@@ -226,6 +242,15 @@ Then open:
 - Fresh-clone bootstrap scripts for repeatable setup
 - Clear migration path from local prototype to hosted AI and cloud persistence
 
+
+## Validation
+
+Current local checks:
+
+- Backend test suite: `31 passed`
+- Frontend production build: `next build` passes
+- Manual end-to-end flow verified: upload -> analysis -> document view -> compare
+
 ## Fresh-clone checklist
 
 After cloning the repository on a new machine:
@@ -233,7 +258,7 @@ After cloning the repository on a new machine:
 1. Run `.\scripts\check-local.cmd`
 2. Run `.\scripts\bootstrap.cmd`
 3. Run `.\scripts\run-local.cmd`
-4. Open `http://localhost:3000`
+4. Open `http://localhost:3004`
 5. Upload the files from `samples/`
 6. Confirm that backend tests pass with `python -m pytest backend/tests`
 
