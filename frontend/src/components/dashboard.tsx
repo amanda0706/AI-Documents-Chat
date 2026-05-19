@@ -527,7 +527,7 @@ ${passageLines}`,
     return (
       <main className="flex min-h-screen items-center justify-center bg-mist p-5">
         <section className="w-full max-w-md rounded-[28px] bg-white p-8 shadow-panel">
-          <h1 className="text-3xl font-semibold tracking-tight">ClausePilot</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">LuminaClause</h1>
           <p className="mt-3 leading-7 text-slate-600">
             Zaloguj się, aby analizować umowy, porównywać wersje i wracać do historii.
           </p>
@@ -585,7 +585,7 @@ ${passageLines}`,
       )}
       <div className="mx-auto grid max-w-[1440px] grid-cols-[250px_minmax(0,1fr)] gap-5">
         <aside className="rounded-[28px] bg-white p-5 shadow-panel">
-          <div className="mb-8 text-2xl font-semibold tracking-tight">ClausePilot</div>
+          <div className="mb-8 text-2xl font-semibold tracking-tight">LuminaClause</div>
           <div className="mb-5 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{email}</div>
           <label className="mb-6 block cursor-pointer rounded-2xl bg-accent px-4 py-3 text-center text-sm font-medium text-white">
             Upload document

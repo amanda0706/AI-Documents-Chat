@@ -4,7 +4,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $backend = Join-Path $root "backend"
 $frontend = Join-Path $root "frontend"
 
-Write-Host "Preparing ClausePilot..."
+Write-Host "Preparing LuminaClause..."
 
 if (-not (Test-Path (Join-Path $backend ".venv"))) {
     Write-Host "Creating backend virtual environment..."

@@ -1,4 +1,4 @@
-# ClausePilot architecture
+# LuminaClause architecture
 
 ```text
 Next.js frontend

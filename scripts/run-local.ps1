@@ -9,7 +9,7 @@ if (-not (Test-Path $python)) {
     throw "Backend environment not found. Run .\scripts\bootstrap.ps1 first."
 }
 
-Write-Host "Starting ClausePilot backend and frontend..."
+Write-Host "Starting LuminaClause backend and frontend..."
 
 $backendProcess = Start-Process `
     -FilePath $python `

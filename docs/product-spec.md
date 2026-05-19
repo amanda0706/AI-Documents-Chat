@@ -2,7 +2,7 @@
 
 ## Product
 
-ClausePilot is an AI Contract / Document Assistant for people who need to understand contracts quickly, compare revisions, and surface risky clauses before approval.
+LuminaClause is an AI Contract / Document Assistant for people who need to understand contracts quickly, compare revisions, and surface risky clauses before approval.
 
 ## Primary users
 

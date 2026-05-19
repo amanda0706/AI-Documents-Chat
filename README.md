@@ -1,14 +1,14 @@
-# ClausePilot
+# LuminaClause
 
 ![Backend tests](https://github.com/amanda0706/AI-Documents-Chat/actions/workflows/backend-tests.yml/badge.svg)
 
 > Local-first AI contract review workspace for summarizing agreements, asking grounded questions, comparing versions, and surfacing risky clauses before human review.
 
-ClausePilot is built as a practical **AI Contract / Document Assistant** rather than a toy chatbot: it keeps the source text close, explains why a clause matters, and supports the review work around the document itself.
+LuminaClause is built as a practical **AI Contract / Document Assistant** rather than a toy chatbot: it keeps the source text close, explains why a clause matters, and supports the review work around the document itself.
 
 ## Product snapshot
 
-![ClausePilot interface concept](design/clausepilot-concept.png)
+![LuminaClause interface concept](design/luminaclause-concept.png)
 
 | Area | What it does |
 | --- | --- |
@@ -18,25 +18,29 @@ ClausePilot is built as a practical **AI Contract / Document Assistant** rather 
 | Collaborate | comments, sharing, review statuses, activity history |
 | Operate | deadlines, review queue, dashboard, exportable reports |
 
-## Screenshots to capture
+## Product screenshots
 
-For portfolio use, capture these three views after running the local demo:
+### Dashboard
 
-1. **Dashboard** - portfolio metrics, risk triage, review queue, deadlines.
-2. **Document workspace** - extracted clauses, AI summary, metadata, risk labels.
-3. **Compare contracts** - side-by-side differences with executive summary.
+Portfolio metrics, risk triage, review queue, and deadline overview.
 
-Suggested filenames:
+![LuminaClause dashboard](docs/screenshots/dashboard.png)
 
-```text
-docs/screenshots/dashboard.png
-docs/screenshots/document-workspace.png
-docs/screenshots/compare-contracts.png
-```
+### Document workspace
+
+Extracted clauses, AI summary, metadata, risk labels, and review controls.
+
+![LuminaClause document workspace](docs/screenshots/document-workspace.png)
+
+### Contract comparison
+
+Side-by-side differences with an executive summary and impact notes.
+
+![LuminaClause contract comparison](docs/screenshots/compare-contracts.png)
 
 ## Why it is useful
 
-Contract review is often slow, repetitive, and opaque for non-lawyers. ClausePilot shortens the first-pass review loop by helping users:
+Contract review is often slow, repetitive, and opaque for non-lawyers. LuminaClause shortens the first-pass review loop by helping users:
 
 1. find the important clauses,
 2. understand the commercial impact,

@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "ClausePilot",
+  title: "LuminaClause",
   description: "AI Contract / Document Assistant",
 };
 

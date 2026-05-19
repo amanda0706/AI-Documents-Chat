@@ -38,7 +38,7 @@ from .providers import get_provider
 from .services import build_dashboard_stats, build_report, compare_contracts
 
 
-app = FastAPI(title="ClausePilot API")
+app = FastAPI(title="LuminaClause API")
 provider = get_provider()
 app.add_middleware(
     CORSMiddleware,
