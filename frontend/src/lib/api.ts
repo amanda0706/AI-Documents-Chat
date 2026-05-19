@@ -9,7 +9,10 @@ import type {
   ReviewStatus,
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_URL =
+  typeof window === "undefined"
+    ? process.env.INTERNAL_API_URL ?? "http://127.0.0.1:8000"
+    : process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 export async function fetchDocuments(): Promise<DocumentItem[]> {
   const response = await fetch(`${API_URL}/documents`, { cache: "no-store" });

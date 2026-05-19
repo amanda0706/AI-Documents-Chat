@@ -687,6 +687,8 @@ ${passageLines}`,
               report={report}
               uploadVersion={uploadVersion}
               busyAction={busyAction}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
             />
           )}
           {view === "compare" && selected && (
@@ -884,6 +886,8 @@ function DocumentWorkspace(props: {
   report: ReportResult | null;
   uploadVersion: (file?: File) => void;
   busyAction: string | null;
+  statusFilter: StatusFilter;
+  setStatusFilter: (value: StatusFilter) => void;
 }) {
   const { selected } = props;
   return (
@@ -942,9 +946,9 @@ function DocumentWorkspace(props: {
             ].map(([key, label]) => (
               <button
                 key={key}
-                onClick={() => setStatusFilter(key as StatusFilter)}
+                onClick={() => props.setStatusFilter(key as StatusFilter)}
                 className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  statusFilter === key ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-700"
+                  props.statusFilter === key ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-700"
                 }`}
               >
                 {label}
@@ -1195,3 +1199,4 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
     </section>
   );
 }
+

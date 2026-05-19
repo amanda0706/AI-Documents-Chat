@@ -1,7 +1,8 @@
 import { Dashboard } from "@/components/dashboard";
 import { fetchDashboard, fetchDeadlines, fetchDocuments } from "@/lib/api";
+import type { DeadlineItem, DocumentItem } from "@/lib/types";
 
-const demoDocuments = [
+const demoDocuments: DocumentItem[] = [
   {
     id: "demo-1",
     filename: "Master Services Agreement.pdf",
@@ -140,7 +141,7 @@ const demoStats = {
   renewal_due_documents: 1,
 };
 
-const demoDeadlines = [
+const demoDeadlines: DeadlineItem[] = [
   {
     document_id: "demo-1",
     filename: "Master Services Agreement.pdf",
