@@ -39,6 +39,7 @@ type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   citations?: DocumentItem["fragments"];
+  timestamp: string;
 };
 type Notice = {
   tone: "success" | "error";
@@ -170,7 +171,8 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
     const currentQuestion = question.trim();
     setBusyAction("question");
     setNotice(null);
-    setMessages((current) => [...current, { role: "user", content: currentQuestion }]);
+    const askedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setMessages((current) => [...current, { role: "user", content: currentQuestion, timestamp: askedAt }]);
     if (!selected.id.startsWith("demo-")) {
       const payload = await askDocumentQuestion(selected.id, currentQuestion);
       if (payload) {
@@ -178,7 +180,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
         setCitations(payload.citations ?? []);
         setMessages((current) => [
           ...current,
-          { role: "assistant", content: payload.answer, citations: payload.citations ?? [] },
+          { role: "assistant", content: payload.answer, citations: payload.citations ?? [], timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
         ]);
         addLocalActivity(selected.id, {
           type: "question",
@@ -205,6 +207,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
         role: "assistant",
         content: hit ? `Najbardziej pasujący fragment jest na stronie ${hit.page}: ${hit.text}` : "Brak trafienia.",
         citations: hit ? [hit] : [],
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
     addLocalActivity(selected.id, {
@@ -817,6 +820,11 @@ ${passageLines}`,
               busyAction={busyAction}
               statusFilter={statusFilter}
               setStatusFilter={setStatusFilter}
+              clearMessages={() => {
+                setMessages([]);
+                setAnswer("Ask a question to generate a grounded answer with source passages.");
+                setCitations([]);
+              }}
             />
           )}
           {view === "compare" && selected && (
@@ -1016,6 +1024,7 @@ function DocumentWorkspace(props: {
   busyAction: string | null;
   statusFilter: StatusFilter;
   setStatusFilter: (value: StatusFilter) => void;
+  clearMessages: () => void;
 }) {
   const { selected } = props;
   return (
@@ -1115,36 +1124,47 @@ function DocumentWorkspace(props: {
           </div>
         </Panel>
         <Panel title="Ask this contract">
-          {props.messages.length > 0 && (
-            <div className="mb-4 space-y-3">
+          <div className="mb-4 flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+            <span>{props.messages.length ? `${props.messages.length} message(s) in this review` : "No questions yet"}</span>
+            {props.messages.length > 0 && (
+              <button onClick={props.clearMessages} className="font-medium text-slate-700 hover:text-slate-950">
+                Clear history
+              </button>
+            )}
+          </div>
+          <textarea value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Ask about payment terms, termination, liability, renewal..." className="min-h-24 w-full rounded-2xl border border-line p-4 text-sm outline-none" />
+          <button disabled={props.busyAction === "question"} onClick={props.askQuestion} className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white disabled:opacity-60">
+            {props.busyAction === "question" ? "Thinking..." : "Ask"}
+          </button>
+          <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">{props.answer}</div>
+        </Panel>
+        <Panel title="Conversation history">
+          {props.messages.length === 0 ? (
+            <p className="text-sm leading-6 text-slate-500">Ask a question to build an auditable Q&A trail for this document.</p>
+          ) : (
+            <div className="max-h-[520px] space-y-3 overflow-auto pr-1">
               {props.messages.map((message, index) => (
-                <div
+                <article
                   key={`${message.role}-${index}`}
                   className={`rounded-2xl p-4 text-sm leading-6 ${
                     message.role === "user" ? "bg-slate-900 text-white" : "bg-blue-50 text-slate-700"
                   }`}
                 >
-                  {message.content}
-                </div>
-              ))}
-            </div>
-          )}
-          <textarea value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Np. jaki jest termin wypowiedzenia?" className="min-h-24 w-full rounded-2xl border border-line p-4 text-sm outline-none" />
-          <button disabled={props.busyAction === "question"} onClick={props.askQuestion} className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white disabled:opacity-60">
-            {props.busyAction === "question" ? "Thinking..." : "Ask"}
-          </button>
-          <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">{props.answer}</div>
-          {props.citations.length > 0 && (
-            <div className="mt-4 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Supporting passages
-              </p>
-              {props.citations.map((citation) => (
-                <article key={citation.id} className="rounded-2xl border border-line p-4 text-sm leading-6">
-                  <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Page {citation.page}
+                  <div className={`mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] ${message.role === "user" ? "text-slate-300" : "text-blue-500"}`}>
+                    <span>{message.role === "user" ? "Question" : "Answer"}</span>
+                    <span>{message.timestamp}</span>
                   </div>
-                  {citation.text}
+                  <p>{message.content}</p>
+                  {message.citations?.length ? (
+                    <div className="mt-3 space-y-2">
+                      {message.citations.map((citation) => (
+                        <div key={citation.id} className="rounded-xl border border-blue-100 bg-white/70 p-3 text-xs leading-5 text-slate-600">
+                          <div className="mb-1 font-semibold text-slate-500">Source page {citation.page}</div>
+                          {citation.text}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </article>
               ))}
             </div>
