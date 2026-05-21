@@ -525,24 +525,69 @@ ${passageLines}`,
 
   if (!isLoggedIn) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-mist p-5">
-        <section className="w-full max-w-md rounded-[28px] bg-white p-8 shadow-panel">
-          <h1 className="text-3xl font-semibold tracking-tight">LuminaClause</h1>
-          <p className="mt-3 leading-7 text-slate-600">
-            Zaloguj się, aby analizować umowy, porównywać wersje i wracać do historii.
-          </p>
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="adres e-mail"
-            className="mt-6 w-full rounded-2xl border border-line px-4 py-3 outline-none"
-          />
-          <button
-            onClick={() => setIsLoggedIn(Boolean(email.trim()))}
-            className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 font-medium text-white"
-          >
-            Continue
-          </button>
+      <main className="min-h-screen bg-mist px-5 py-8">
+        <section className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <div className="mb-5 inline-flex rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm">
+              AI contract review workspace - local-first RAG-ready architecture
+            </div>
+            <h1 className="max-w-3xl text-5xl font-semibold tracking-[-0.04em] text-slate-950 md:text-6xl">
+              Review contracts faster with traceable AI assistance.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+              LuminaClause helps teams upload agreements, find risky clauses, ask document-grounded questions,
+              compare revisions, and keep review decisions visible before human approval.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a href="#signin" className="rounded-2xl bg-slate-900 px-5 py-3 font-medium text-white shadow-panel">
+                Try local demo
+              </a>
+              <a href="https://github.com/amanda0706/AI-Documents-Chat" className="rounded-2xl border border-line bg-white px-5 py-3 font-medium text-slate-800">
+                View GitHub
+              </a>
+            </div>
+            <div className="mt-8 grid max-w-2xl gap-3 sm:grid-cols-3">
+              {[
+                ["Risk scoring", "Clause-level risk signals and suggested safer wording."],
+                ["Grounded Q&A", "Answers stay tied to extracted source fragments."],
+                ["Version compare", "See commercial changes between contract versions."],
+              ].map(([title, body]) => (
+                <div key={title} className="rounded-3xl bg-white p-4 shadow-sm">
+                  <p className="font-semibold text-slate-950">{title}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <div className="overflow-hidden rounded-[30px] border border-white bg-white p-3 shadow-panel">
+              <img
+                src="/screenshots/dashboard.png"
+                alt="LuminaClause dashboard preview"
+                className="h-auto w-full rounded-[22px] border border-line object-cover"
+              />
+            </div>
+            <section id="signin" className="rounded-[28px] bg-white p-6 shadow-panel">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Login / register demo</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight">Enter your email to open the workspace</h2>
+              <p className="mt-2 leading-7 text-slate-600">
+                This local portfolio build uses lightweight email login to simulate authenticated document ownership.
+              </p>
+              <input
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="anna@firma.pl"
+                className="mt-5 w-full rounded-2xl border border-line px-4 py-3 outline-none"
+              />
+              <button
+                onClick={() => setIsLoggedIn(Boolean(email.trim()))}
+                className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 font-medium text-white"
+              >
+                Continue to dashboard
+              </button>
+            </section>
+          </div>
         </section>
       </main>
     );
@@ -1199,4 +1244,3 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
     </section>
   );
 }
-
