@@ -26,6 +26,7 @@ from .store import (
     add_activity,
     add_comment,
     create_document,
+    delete_document,
     create_document_version,
     get_document,
     list_document_versions,
@@ -74,6 +75,14 @@ def document(doc_id: str):
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
     return item
+
+
+@app.delete("/documents/{doc_id}")
+def remove_document(doc_id: str):
+    deleted = delete_document(doc_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return {"status": "deleted", "document_id": doc_id}
 
 
 @app.post("/documents/upload")

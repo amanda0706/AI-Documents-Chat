@@ -160,3 +160,12 @@ export async function saveDocumentMetadata(
     null,
   );
 }
+
+export async function deleteDocument(documentId: string): Promise<boolean> {
+  return requestJson(
+    () => fetch(`${API_URL}/documents/${documentId}`, {
+      method: "DELETE",
+    }),
+    null,
+  ).then((result) => Boolean(result));
+}

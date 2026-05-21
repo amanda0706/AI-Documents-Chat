@@ -5,6 +5,7 @@ import {
   addDocumentComment,
   askDocumentQuestion,
   compareDocuments,
+  deleteDocument,
   fetchReport,
   saveDocumentMetadata,
   shareDocument as shareDocumentRequest,
@@ -564,6 +565,29 @@ ${passageLines}`,
     );
   }
 
+  async function archiveDocument() {
+    if (!selected) return;
+    setBusyAction("delete");
+    setNotice(null);
+    const deleted = selected.id.startsWith("demo-") ? true : await deleteDocument(selected.id);
+    if (!deleted) {
+      setBusyAction(null);
+      setNotice({ tone: "error", message: "Document could not be archived." });
+      return;
+    }
+    setItems((current) => {
+      const next = current.filter((item) => item.id !== selected.id);
+      setSelectedId(next[0]?.id ?? "");
+      if (next[0]) syncMetadataDraft(next[0]);
+      return next;
+    });
+    setMessages([]);
+    setCitations([]);
+    setAnswer("Ask a question to generate a grounded answer with source passages.");
+    setBusyAction(null);
+    setNotice({ tone: "success", message: "Document archived." });
+  }
+
   if (!isLoggedIn) {
     return (
       <main className="min-h-screen bg-mist px-5 py-8">
@@ -825,6 +849,7 @@ ${passageLines}`,
                 setAnswer("Ask a question to generate a grounded answer with source passages.");
                 setCitations([]);
               }}
+              archiveDocument={archiveDocument}
             />
           )}
           {view === "compare" && selected && (
@@ -1025,6 +1050,7 @@ function DocumentWorkspace(props: {
   statusFilter: StatusFilter;
   setStatusFilter: (value: StatusFilter) => void;
   clearMessages: () => void;
+  archiveDocument: () => void;
 }) {
   const { selected } = props;
   return (
@@ -1182,6 +1208,12 @@ function DocumentWorkspace(props: {
             {props.busyAction === "version" ? "Uploading..." : "Upload new version"}
             <input type="file" accept=".pdf,.txt" className="hidden" onChange={(event) => props.uploadVersion(event.target.files?.[0])} />
           </label>
+        </Panel>
+        <Panel title="Danger zone">
+          <p className="text-sm leading-6 text-slate-500">Archive this document from the local workspace when it is no longer part of the review queue.</p>
+          <button disabled={props.busyAction === "delete"} onClick={props.archiveDocument} className="mt-3 w-full rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 disabled:opacity-60">
+            {props.busyAction === "delete" ? "Archiving..." : "Archive document"}
+          </button>
         </Panel>
         <Panel title="Export report">
           <button disabled={props.busyAction === "report"} onClick={props.generateReport} className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white disabled:opacity-60">

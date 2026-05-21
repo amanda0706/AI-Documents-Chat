@@ -128,6 +128,15 @@ def get_document(doc_id: str) -> DocumentDetail | None:
     return DocumentDetail(**payload) if payload else None
 
 
+def delete_document(doc_id: str) -> bool:
+    documents = load_all()
+    if doc_id not in documents:
+        return False
+    documents.pop(doc_id)
+    save_all(documents)
+    return True
+
+
 def add_activity(doc_id: str, item: ActivityItem) -> DocumentDetail | None:
     documents = load_all()
     payload = documents.get(doc_id)

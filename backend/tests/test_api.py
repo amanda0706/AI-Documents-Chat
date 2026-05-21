@@ -104,3 +104,16 @@ def test_bulk_upload_creates_multiple_documents(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert [item["filename"] for item in response.json()] == ["msa.txt", "supplier.txt"]
+
+
+def test_delete_document_removes_it_from_collection(client: TestClient) -> None:
+    document = upload_contract(client)
+
+    delete_response = client.delete(f"/documents/{document['id']}")
+    list_response = client.get("/documents")
+    missing_response = client.get(f"/documents/{document['id']}")
+
+    assert delete_response.status_code == 200
+    assert delete_response.json()["status"] == "deleted"
+    assert all(item["id"] != document["id"] for item in list_response.json())
+    assert missing_response.status_code == 404
