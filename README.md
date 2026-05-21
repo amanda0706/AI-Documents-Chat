@@ -12,11 +12,11 @@ LuminaClause is built as a practical **AI Contract / Document Assistant** rather
 
 | Area | What it does |
 | --- | --- |
-| Understand | summaries, fragment search, grounded Q&A with citations |
+| Understand | summaries, fragment search, grounded Q&A with citations and chat history |
 | Review | risk detection, scoring, suggested safer wording |
 | Compare | side-by-side contract comparison and impact notes |
 | Collaborate | comments, sharing, review statuses, activity history |
-| Operate | deadlines, review queue, dashboard, exportable reports |
+| Operate | landing page, drag-and-drop upload, deadlines, review queue, dashboard, exportable reports |
 
 ## Product screenshots
 
@@ -28,7 +28,7 @@ Portfolio metrics, risk triage, review queue, and deadline overview.
 
 ### Document workspace
 
-Extracted clauses, AI summary, metadata, risk labels, and review controls.
+Extracted clauses, AI summary, metadata, risk labels, conversation history, and review controls.
 
 ![LuminaClause document workspace](docs/screenshots/document-workspace.png)
 
@@ -51,7 +51,7 @@ Contract review is often slow, repetitive, and opaque for non-lawyers. LuminaCla
 
 ### 1. Explainable document chat
 
-Questions return not only an answer, but also the supporting contract passages that justify it.
+Questions return not only an answer, but also the supporting contract passages that justify it. The workspace keeps a local conversation history so a reviewer can see the question trail for the selected document.
 
 ### 2. Contract risk review
 
@@ -67,7 +67,7 @@ The dashboard shows high-risk contracts, items awaiting review, approved documen
 
 ### 5. Exportable output
 
-Users can generate and download a markdown report that is ready to share or convert into a polished PDF later.
+Users can generate and download a markdown report that is ready to share or convert into a polished PDF later. Documents can also be archived from the workspace through the API and UI.
 
 ## Why the project is built this way
 
@@ -118,8 +118,9 @@ Future provider layer:
 - Document workspace
 - AI summary
 - risk analysis
-- Q&A
+- Q&A with local chat history
 - fragment search
+- drag-and-drop upload with progress
 
 ### Pro-style features
 
@@ -133,6 +134,7 @@ Future provider layer:
 - review status workflow
 - review queue
 - exportable reports
+- document archive workflow
 
 ## Stack
 
@@ -231,17 +233,19 @@ Then open:
 2. Upload `samples/master-services-agreement.txt`.
 3. Upload `samples/supplier-agreement.txt`.
 4. Ask: `What are the payment terms?`
-5. Add a reviewer comment and move the first contract into `In review`.
-6. Open the comparison view and compare both documents.
-7. Inspect the review queue, suggested edits, and supporting passages below the answer.
-8. Generate and download a contract review report.
+5. Ask a follow-up question and inspect the conversation history with cited source passages.
+6. Add a reviewer comment and move the first contract into `In review`.
+7. Open the comparison view and compare both documents.
+8. Inspect the review queue, suggested edits, and supporting passages below the answer.
+9. Generate and download a contract review report.
+10. Archive a document when it leaves the local review queue.
 
 ## What makes this portfolio-ready
 
 - Real product framing around a concrete workflow, not just generic chat
 - Full-stack delivery across Next.js and FastAPI
 - Explainable AI-oriented architecture with citations and a swappable provider layer
-- Workflow features beyond MVP: comments, status, deadlines, review queue, export
+- Workflow features beyond MVP: comments, status, deadlines, review queue, archive flow, export
 - Automated backend and API tests
 - Fresh-clone bootstrap scripts for repeatable setup
 - Clear migration path from local prototype to hosted AI and cloud persistence
@@ -253,7 +257,7 @@ Current local checks:
 
 - Backend test suite: `31 passed`
 - Frontend production build: `next build` passes
-- Manual end-to-end flow verified: upload -> analysis -> document view -> compare
+- Manual end-to-end flow verified: upload -> analysis -> document view -> chat history -> compare -> archive
 
 ## Fresh-clone checklist
 
@@ -271,7 +275,9 @@ After cloning the repository on a new machine:
 - `GET /dashboard`
 - `GET /documents`
 - `POST /documents/upload`
+- `POST /documents/bulk-upload`
 - `GET /documents/{id}`
+- `DELETE /documents/{id}`
 - `GET /documents/{id}/search`
 - `POST /documents/{id}/ask`
 - `POST /documents/{id}/share`

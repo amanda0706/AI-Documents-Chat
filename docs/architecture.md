@@ -32,3 +32,12 @@ FastAPI backend
 ## Why this split matters
 
 The frontend already speaks to stable backend endpoints, while the backend now speaks to a provider contract. That means the intelligence layer can improve dramatically later without forcing a product rewrite.
+
+## Current local capabilities
+
+- Landing page with product positioning and GitHub CTA.
+- Drag-and-drop PDF/TXT upload with visible progress states.
+- Document-grounded Q&A with local conversation history and cited fragments.
+- Review workflow: comments, status, metadata, deadlines, and activity timeline.
+- Archive workflow through `DELETE /documents/{id}` and the UI danger zone.
+- API resilience in the frontend so failed backend calls return controlled empty states instead of a framework overlay.
