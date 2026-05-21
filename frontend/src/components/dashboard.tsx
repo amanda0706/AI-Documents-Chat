@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type DragEvent, useMemo, useState } from "react";
 import {
   addDocumentComment,
   askDocumentQuestion,
@@ -43,6 +43,11 @@ type ChatMessage = {
 type Notice = {
   tone: "success" | "error";
   message: string;
+};
+type UploadProgress = {
+  label: string;
+  detail: string;
+  percent: number;
 };
 
 const severityStyles = {
@@ -94,6 +99,8 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
   const [documentSearch, setDocumentSearch] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [isDraggingUpload, setIsDraggingUpload] = useState(false);
 
   const visibleDocuments = useMemo(() => {
     return items.filter((document) => {
@@ -123,6 +130,28 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
       fragment.text.toLowerCase().includes(query.toLowerCase()),
     );
   }, [query, selected]);
+  const uploadInProgress = busyAction === "upload" || busyAction === "bulk-upload";
+
+  function normalizeUploadFiles(files?: FileList | File[] | null) {
+    return Array.from(files ?? []).filter((file) => /\.(pdf|txt)$/i.test(file.name));
+  }
+
+  function handleUploadDragOver(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    setIsDraggingUpload(true);
+  }
+
+  function handleUploadDragLeave(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    setIsDraggingUpload(false);
+  }
+
+  function handleUploadDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    setIsDraggingUpload(false);
+    uploadMany(event.dataTransfer.files);
+  }
+
 
   function syncMetadataDraft(document: DocumentItem | undefined) {
     if (!document) return;
@@ -205,14 +234,21 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
     setNotice({ tone: "success", message: "Document uploaded." });
   }
 
-  async function uploadMany(files?: FileList | null) {
-    if (!files?.length) return;
-    setBusyAction("bulk-upload");
+  async function uploadMany(files?: FileList | File[] | null) {
+    const uploadFiles = normalizeUploadFiles(files);
+    if (!uploadFiles.length) {
+      setNotice({ tone: "error", message: "Choose PDF or TXT files only." });
+      return;
+    }
+    setBusyAction(uploadFiles.length > 1 ? "bulk-upload" : "upload");
     setNotice(null);
-    const created = await uploadDocuments(Array.from(files));
+    setUploadProgress({ label: "Preparing upload", detail: `${uploadFiles.length} file(s) selected`, percent: 18 });
+    const created = await uploadDocuments(uploadFiles);
+    setUploadProgress({ label: "Processing documents", detail: "Extracting text, risks and summary", percent: 72 });
     if (!created.length) {
       setBusyAction(null);
-      setNotice({ tone: "error", message: "Bulk upload failed. Try again." });
+      setUploadProgress(null);
+      setNotice({ tone: "error", message: "Upload failed. Check that the backend is running and try again." });
       return;
     }
     setItems((current) => [...created, ...current]);
@@ -220,7 +256,9 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
     syncMetadataDraft(created[0]);
     setView("document");
     setBusyAction(null);
+    setUploadProgress({ label: "Upload complete", detail: `${created.length} document(s) added`, percent: 100 });
     setNotice({ tone: "success", message: `${created.length} document(s) uploaded.` });
+    window.setTimeout(() => setUploadProgress(null), 1200);
   }
 
   async function uploadVersion(file?: File) {
@@ -601,8 +639,31 @@ ${passageLines}`,
           <p className="mt-4 leading-7 text-slate-600">
             Upload a PDF or TXT file to generate a summary, inspect risks, ask questions, and compare revisions.
           </p>
-          <label className="mt-6 inline-block cursor-pointer rounded-2xl bg-accent px-5 py-3 font-medium text-white">
-            Upload document
+          <div
+            onDragOver={handleUploadDragOver}
+            onDragLeave={handleUploadDragLeave}
+            onDrop={handleUploadDrop}
+            className={`mt-6 rounded-[24px] border border-dashed p-5 transition ${
+              isDraggingUpload ? "border-blue-500 bg-blue-50" : "border-line bg-slate-50"
+            }`}
+          >
+            <p className="font-medium text-slate-900">Drag & drop PDF/TXT files here</p>
+            <p className="mt-1 text-sm text-slate-500">or use the upload button below. Multiple files are supported.</p>
+            {uploadProgress && (
+              <div className="mt-4">
+                <div className="flex justify-between text-xs font-medium text-slate-500">
+                  <span>{uploadProgress.label}</span>
+                  <span>{uploadProgress.percent}%</span>
+                </div>
+                <div className="mt-2 h-2 rounded-full bg-white">
+                  <div className="h-2 rounded-full bg-accent transition-all" style={{ width: `${uploadProgress.percent}%` }} />
+                </div>
+                <p className="mt-2 text-xs text-slate-500">{uploadProgress.detail}</p>
+              </div>
+            )}
+          </div>
+          <label className="mt-4 inline-block cursor-pointer rounded-2xl bg-accent px-5 py-3 font-medium text-white">
+            {uploadInProgress ? "Uploading..." : "Upload document"}
             <input type="file" accept=".pdf,.txt" multiple className="hidden" onChange={(event) => uploadMany(event.target.files)} />
           </label>
           <button
@@ -632,10 +693,32 @@ ${passageLines}`,
         <aside className="rounded-[28px] bg-white p-5 shadow-panel">
           <div className="mb-8 text-2xl font-semibold tracking-tight">LuminaClause</div>
           <div className="mb-5 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{email}</div>
-          <label className="mb-6 block cursor-pointer rounded-2xl bg-accent px-4 py-3 text-center text-sm font-medium text-white">
-            Upload document
+          <div
+            onDragOver={handleUploadDragOver}
+            onDragLeave={handleUploadDragLeave}
+            onDrop={handleUploadDrop}
+            className={`mb-4 rounded-2xl border border-dashed p-3 text-center text-xs transition ${
+              isDraggingUpload ? "border-blue-500 bg-blue-50 text-blue-700" : "border-line bg-slate-50 text-slate-500"
+            }`}
+          >
+            Drop PDF/TXT here
+          </div>
+          <label className="mb-3 block cursor-pointer rounded-2xl bg-accent px-4 py-3 text-center text-sm font-medium text-white">
+            {uploadInProgress ? "Uploading..." : "Upload document"}
             <input type="file" accept=".pdf,.txt" multiple className="hidden" onChange={(event) => uploadMany(event.target.files)} />
           </label>
+          {uploadProgress && (
+            <div className="mb-6 rounded-2xl bg-slate-50 p-3 text-xs text-slate-600">
+              <div className="flex justify-between font-medium">
+                <span>{uploadProgress.label}</span>
+                <span>{uploadProgress.percent}%</span>
+              </div>
+              <div className="mt-2 h-2 rounded-full bg-white">
+                <div className="h-2 rounded-full bg-accent transition-all" style={{ width: `${uploadProgress.percent}%` }} />
+              </div>
+              <p className="mt-2">{uploadProgress.detail}</p>
+            </div>
+          )}
           <nav className="mb-8 space-y-2">
             {[
               ["overview", "Dashboard"],
