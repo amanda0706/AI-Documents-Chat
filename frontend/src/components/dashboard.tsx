@@ -1437,8 +1437,7 @@ function RiskRow({ risk }: { risk: RiskItem }) {
 }
 
 function MarkdownText({ content }: { content: string }) {
-  const lines = content.split("
-");
+  const lines = content.split("\n");
   const blocks: React.ReactNode[] = [];
   let listItems: string[] = [];
 
