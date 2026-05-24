@@ -1,6 +1,7 @@
 # LuminaClause
 
 ![Backend tests](https://github.com/amanda0706/AI-Documents-Chat/actions/workflows/backend-tests.yml/badge.svg)
+![Frontend build](https://github.com/amanda0706/AI-Documents-Chat/actions/workflows/frontend-build.yml/badge.svg)
 
 > Local-first AI contract review workspace for summarizing agreements, asking grounded questions, comparing versions, and surfacing risky clauses before human review.
 
@@ -279,7 +280,7 @@ Then open:
 - Full-stack delivery across Next.js and FastAPI
 - Explainable AI-oriented architecture with citations and a swappable provider layer
 - Workflow features beyond MVP: local auth mock, ownership, comments, status, deadlines, review queue, archive flow, markdown report preview, export
-- Automated backend and API tests
+- Automated backend/API tests and frontend production build checks
 - Fresh-clone bootstrap scripts and Docker Compose for repeatable setup
 - Clear migration path from local prototype to hosted AI and cloud persistence
 
@@ -290,6 +291,7 @@ Current local checks:
 
 - Backend test suite: `31 passed`
 - Frontend production build: `next build` passes
+- GitHub Actions: backend tests + frontend build on push and pull request
 - Docker Compose stack: frontend + FastAPI backend with persistent backend volume
 - Manual end-to-end flow verified: upload -> analysis -> document view -> chat history -> compare -> archive
 
