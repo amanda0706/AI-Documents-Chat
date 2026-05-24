@@ -41,3 +41,12 @@ The frontend already speaks to stable backend endpoints, while the backend now s
 - Review workflow: comments, status, metadata, deadlines, and activity timeline.
 - Archive workflow through `DELETE /documents/{id}` and the UI danger zone.
 - API resilience in the frontend so failed backend calls return controlled empty states instead of a framework overlay.
+
+## Container runtime
+
+Docker Compose runs two services:
+
+- `frontend`: Next.js production server on port `3000`.
+- `backend`: FastAPI service on port `8000`, with `/app/data` persisted in the `backend-data` volume.
+
+The frontend uses `NEXT_PUBLIC_API_URL=/api` in the browser and `INTERNAL_API_URL=http://backend:8000` for server-side rewrites inside the Docker network.

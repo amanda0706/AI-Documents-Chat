@@ -11,4 +11,4 @@ server.out.log
 server.err.log
 msa.pdf
 supplier.pdf
-
+.tmp/

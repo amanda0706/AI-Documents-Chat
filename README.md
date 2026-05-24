@@ -142,6 +142,7 @@ Future provider layer:
 - Backend: Python + FastAPI
 - Storage now: local filesystem + JSON
 - Planned persistence: PostgreSQL + pgvector
+- Containerization: Docker + Docker Compose
 - Planned cloud: AWS or Azure
 
 ## Architecture
@@ -160,6 +161,21 @@ FastAPI backend
 ```
 
 The product is intentionally split so the user-facing workflow can stay stable while the intelligence layer evolves from local heuristics to hosted AI and vector search.
+
+## Docker Compose
+
+Run the full stack in production-like containers:
+
+```powershell
+docker compose up --build
+```
+
+Then open:
+
+- frontend: `http://localhost:3000`
+- backend docs: `http://localhost:8000/docs`
+
+The frontend proxies `/api/*` to the backend container through `INTERNAL_API_URL`, so the browser talks to one frontend origin while the server-side rewrite reaches FastAPI internally. Backend data is stored in the `backend-data` Docker volume.
 
 ## Local run
 
@@ -247,7 +263,7 @@ Then open:
 - Explainable AI-oriented architecture with citations and a swappable provider layer
 - Workflow features beyond MVP: comments, status, deadlines, review queue, archive flow, export
 - Automated backend and API tests
-- Fresh-clone bootstrap scripts for repeatable setup
+- Fresh-clone bootstrap scripts and Docker Compose for repeatable setup
 - Clear migration path from local prototype to hosted AI and cloud persistence
 
 
@@ -257,6 +273,7 @@ Current local checks:
 
 - Backend test suite: `31 passed`
 - Frontend production build: `next build` passes
+- Docker Compose stack: frontend + FastAPI backend with persistent backend volume
 - Manual end-to-end flow verified: upload -> analysis -> document view -> chat history -> compare -> archive
 
 ## Fresh-clone checklist
