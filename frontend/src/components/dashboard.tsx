@@ -1227,7 +1227,7 @@ function DocumentWorkspace(props: {
           <button disabled={props.busyAction === "question"} onClick={props.askQuestion} className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white disabled:opacity-60">
             {props.busyAction === "question" ? "Thinking..." : "Ask"}
           </button>
-          <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">{props.answer}</div>
+          <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700"><MarkdownText content={props.answer} /></div>
         </Panel>
         <Panel title="Conversation history">
           {props.messages.length === 0 ? (
@@ -1245,7 +1245,7 @@ function DocumentWorkspace(props: {
                     <span>{message.role === "user" ? "Question" : "Answer"}</span>
                     <span>{message.timestamp}</span>
                   </div>
-                  <p>{message.content}</p>
+                  <MarkdownText content={message.content} />
                   {message.citations?.length ? (
                     <div className="mt-3 space-y-2">
                       {message.citations.map((citation) => (
@@ -1289,9 +1289,9 @@ function DocumentWorkspace(props: {
               <button onClick={props.downloadReport} className="mt-3 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium">
                 Download .md file
               </button>
-              <pre className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-                {props.report.markdown}
-              </pre>
+              <div className="mt-4 max-h-72 overflow-auto rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                <MarkdownText content={props.report.markdown} />
+              </div>
             </>
           )}
         </Panel>
@@ -1434,6 +1434,62 @@ function RiskRow({ risk }: { risk: RiskItem }) {
       <p className="mt-2 text-sm text-slate-600">{risk.explanation}</p>
     </div>
   );
+}
+
+function MarkdownText({ content }: { content: string }) {
+  const lines = content.split("
+");
+  const blocks: React.ReactNode[] = [];
+  let listItems: string[] = [];
+
+  function flushList() {
+    if (!listItems.length) return;
+    blocks.push(
+      <ul key={`list-${blocks.length}`} className="my-3 list-disc space-y-1 pl-5">
+        {listItems.map((item, index) => <li key={`${item}-${index}`}>{renderInlineMarkdown(item)}</li>)}
+      </ul>,
+    );
+    listItems = [];
+  }
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushList();
+      return;
+    }
+    if (trimmed.startsWith("- ")) {
+      listItems.push(trimmed.slice(2));
+      return;
+    }
+    flushList();
+    if (trimmed.startsWith("### ")) {
+      blocks.push(<h3 key={index} className="mt-4 text-base font-semibold text-slate-900">{renderInlineMarkdown(trimmed.slice(4))}</h3>);
+      return;
+    }
+    if (trimmed.startsWith("## ")) {
+      blocks.push(<h2 key={index} className="mt-5 text-lg font-semibold text-slate-950">{renderInlineMarkdown(trimmed.slice(3))}</h2>);
+      return;
+    }
+    if (trimmed.startsWith("# ")) {
+      blocks.push(<h1 key={index} className="mt-5 text-xl font-semibold text-slate-950">{renderInlineMarkdown(trimmed.slice(2))}</h1>);
+      return;
+    }
+    blocks.push(<p key={index} className="my-2">{renderInlineMarkdown(trimmed)}</p>);
+  });
+  flushList();
+
+  return <div className="space-y-1">{blocks}</div>;
+}
+
+function renderInlineMarkdown(value: string) {
+  const parts = value.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index} className="font-semibold text-slate-950">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {

@@ -119,6 +119,7 @@ Future provider layer:
 - AI summary
 - risk analysis
 - Q&A with local chat history
+- markdown-rendered answers and reports
 - fragment search
 - drag-and-drop upload with progress
 
@@ -274,9 +275,10 @@ Then open:
 ## What makes this portfolio-ready
 
 - Real product framing around a concrete workflow, not just generic chat
+- Polished AI interaction details: markdown-rendered AI answers, report preview, citations, and chat history
 - Full-stack delivery across Next.js and FastAPI
 - Explainable AI-oriented architecture with citations and a swappable provider layer
-- Workflow features beyond MVP: local auth mock, ownership, comments, status, deadlines, review queue, archive flow, export
+- Workflow features beyond MVP: local auth mock, ownership, comments, status, deadlines, review queue, archive flow, markdown report preview, export
 - Automated backend and API tests
 - Fresh-clone bootstrap scripts and Docker Compose for repeatable setup
 - Clear migration path from local prototype to hosted AI and cloud persistence
