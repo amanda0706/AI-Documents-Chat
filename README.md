@@ -308,6 +308,9 @@ After cloning the repository on a new machine:
 
 ## Main API endpoints
 
+Full API reference with examples: [`docs/api.md`](docs/api.md).
+
+
 ### Upload safety
 
 The local API applies production-minded guardrails before analysis starts:
