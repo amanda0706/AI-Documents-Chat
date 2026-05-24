@@ -128,3 +128,27 @@ def test_upload_accepts_owner_metadata(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json()["owner"] == "owner@example.com"
+
+
+def test_upload_rejects_empty_and_large_files(client: TestClient) -> None:
+    empty_response = client.post(
+        "/documents/upload",
+        files={"file": ("empty.txt", b"")},
+    )
+    large_response = client.post(
+        "/documents/upload",
+        files={"file": ("large.txt", b"x" * (5 * 1024 * 1024 + 1))},
+    )
+
+    assert empty_response.status_code == 400
+    assert large_response.status_code == 413
+
+
+def test_upload_sanitizes_filename(client: TestClient) -> None:
+    response = client.post(
+        "/documents/upload",
+        files={"file": ("../Unsafe Contract 2026.txt", b"Payment terms are net 60 days.")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["filename"] == "Unsafe-Contract-2026.txt"

@@ -280,7 +280,7 @@ Then open:
 - Full-stack delivery across Next.js and FastAPI
 - Explainable AI-oriented architecture with citations and a swappable provider layer
 - Workflow features beyond MVP: local auth mock, ownership, comments, status, deadlines, review queue, archive flow, markdown report preview, export
-- Automated backend/API tests and frontend production build checks
+- Automated backend/API tests, upload guardrail coverage, and frontend production build checks
 - Fresh-clone bootstrap scripts and Docker Compose for repeatable setup
 - Clear migration path from local prototype to hosted AI and cloud persistence
 
@@ -307,6 +307,17 @@ After cloning the repository on a new machine:
 6. Confirm that backend tests pass with `python -m pytest backend/tests`
 
 ## Main API endpoints
+
+### Upload safety
+
+The local API applies production-minded guardrails before analysis starts:
+
+- PDF/TXT files only,
+- empty files rejected,
+- 5 MB local demo upload limit,
+- sanitized filenames before writing temporary files,
+- unreadable documents rejected with controlled API errors.
+
 
 - `GET /dashboard`
 - `GET /documents`

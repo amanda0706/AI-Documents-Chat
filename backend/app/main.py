@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pathlib import Path
+from uuid import uuid4
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from .analyzer import similarity_score
@@ -41,6 +44,8 @@ from .services import build_dashboard_stats, build_report, compare_contracts
 
 app = FastAPI(title="LuminaClause API")
 provider = get_provider()
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+ALLOWED_UPLOAD_SUFFIXES = {".pdf", ".txt"}
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -96,46 +101,55 @@ async def bulk_upload_documents(files: list[UploadFile] = File(...), owner: str 
 
 
 async def process_upload(file: UploadFile, owner: str = ""):
-    if not file.filename.lower().endswith((".pdf", ".txt")):
-        raise HTTPException(status_code=400, detail="Only PDF and TXT files are supported")
+    original_filename = sanitize_upload_filename(file.filename or "document.txt")
+    page_texts, extraction_method = await read_upload_pages(file, original_filename)
+    all_text = "\n".join(page_texts)
+    summary = provider.summarize_document(original_filename, all_text)
+    return create_document(original_filename, page_texts, summary, extraction_method=extraction_method, owner=owner)
 
+
+def sanitize_upload_filename(filename: str) -> str:
+    name = Path(filename).name.strip().replace(" ", "-")
+    safe = "".join(character for character in name if character.isalnum() or character in {"-", "_", "."})
+    if not safe or safe in {".", ".."}:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    if Path(safe).suffix.lower() not in ALLOWED_UPLOAD_SUFFIXES:
+        raise HTTPException(status_code=400, detail="Only PDF and TXT files are supported")
+    return safe[:120]
+
+
+async def read_upload_pages(file: UploadFile, safe_filename: str) -> tuple[list[str], str]:
     raw = await file.read()
-    temp_path = UPLOADS_DIR / file.filename
+    if not raw:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File is too large for the local demo limit")
+
+    temp_path = UPLOADS_DIR / f"{uuid4().hex}-{safe_filename}"
     temp_path.parent.mkdir(parents=True, exist_ok=True)
     temp_path.write_bytes(raw)
 
-    if file.filename.lower().endswith(".pdf"):
+    if Path(safe_filename).suffix.lower() == ".pdf":
         extraction = extract_pdf_pages(temp_path)
-        page_texts = extraction.page_texts
+        page_texts = [page.strip() for page in extraction.page_texts if page.strip()]
         extraction_method = extraction.method
     else:
         page_texts = [temp_path.read_text(encoding="utf-8").strip()]
         extraction_method = "text"
-    all_text = "\n".join(page_texts)
-    summary = provider.summarize_document(file.filename, all_text)
-    return create_document(file.filename, page_texts, summary, extraction_method=extraction_method, owner=owner)
+    if not any(page_texts):
+        raise HTTPException(status_code=400, detail="No readable text found in uploaded document")
+    return page_texts, extraction_method
 
 
 @app.post("/documents/{doc_id}/versions")
 async def upload_document_version(doc_id: str, file: UploadFile = File(...)):
-    if not file.filename.lower().endswith((".pdf", ".txt")):
-        raise HTTPException(status_code=400, detail="Only PDF and TXT files are supported")
-
-    raw = await file.read()
-    temp_path = UPLOADS_DIR / file.filename
-    temp_path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path.write_bytes(raw)
-
-    if file.filename.lower().endswith(".pdf"):
-        extraction = extract_pdf_pages(temp_path)
-        page_texts = extraction.page_texts
-        extraction_method = extraction.method
-    else:
-        page_texts = [temp_path.read_text(encoding="utf-8").strip()]
-        extraction_method = "text"
+    if not get_document(doc_id):
+        raise HTTPException(status_code=404, detail="Document not found")
+    original_filename = sanitize_upload_filename(file.filename or "document.txt")
+    page_texts, extraction_method = await read_upload_pages(file, original_filename)
     all_text = "\n".join(page_texts)
-    summary = provider.summarize_document(file.filename, all_text)
-    created = create_document_version(doc_id, file.filename, page_texts, summary, extraction_method=extraction_method)
+    summary = provider.summarize_document(original_filename, all_text)
+    created = create_document_version(doc_id, original_filename, page_texts, summary, extraction_method=extraction_method)
     if not created:
         raise HTTPException(status_code=404, detail="Document not found")
     return created
