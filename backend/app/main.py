@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from .analyzer import similarity_score
 from .extraction import extract_pdf_pages
@@ -86,16 +86,16 @@ def remove_document(doc_id: str):
 
 
 @app.post("/documents/upload")
-async def upload_document(file: UploadFile = File(...)):
-    return await process_upload(file)
+async def upload_document(file: UploadFile = File(...), owner: str = Form("")):
+    return await process_upload(file, owner=owner)
 
 
 @app.post("/documents/bulk-upload")
-async def bulk_upload_documents(files: list[UploadFile] = File(...)):
-    return [await process_upload(file) for file in files]
+async def bulk_upload_documents(files: list[UploadFile] = File(...), owner: str = Form("")):
+    return [await process_upload(file, owner=owner) for file in files]
 
 
-async def process_upload(file: UploadFile):
+async def process_upload(file: UploadFile, owner: str = ""):
     if not file.filename.lower().endswith((".pdf", ".txt")):
         raise HTTPException(status_code=400, detail="Only PDF and TXT files are supported")
 
@@ -113,7 +113,7 @@ async def process_upload(file: UploadFile):
         extraction_method = "text"
     all_text = "\n".join(page_texts)
     summary = provider.summarize_document(file.filename, all_text)
-    return create_document(file.filename, page_texts, summary, extraction_method=extraction_method)
+    return create_document(file.filename, page_texts, summary, extraction_method=extraction_method, owner=owner)
 
 
 @app.post("/documents/{doc_id}/versions")

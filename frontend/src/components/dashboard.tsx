@@ -1,6 +1,6 @@
 "use client";
 
-import { type DragEvent, useMemo, useState } from "react";
+import { type DragEvent, useEffect, useMemo, useState } from "react";
 import {
   addDocumentComment,
   askDocumentQuestion,
@@ -34,6 +34,7 @@ type DashboardProps = {
 };
 
 type View = "overview" | "document" | "compare" | "suggestions";
+type AuthMode = "login" | "register";
 type RiskFilter = "all" | RiskSeverity;
 type StatusFilter = "all" | ReviewStatus;
 type ChatMessage = {
@@ -74,6 +75,7 @@ const riskMarkers: Record<string, string[]> = {
 
 export function Dashboard({ documents, stats, demoDocuments, deadlines }: DashboardProps) {
   const [email, setEmail] = useState("");
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [items, setItems] = useState(documents);
   const [selectedId, setSelectedId] = useState(documents[0]?.id ?? "");
@@ -104,8 +106,59 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [isDraggingUpload, setIsDraggingUpload] = useState(false);
 
+  useEffect(() => {
+    const savedEmail = window.localStorage.getItem("luminaclause:userEmail");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const userEmail = email.trim().toLowerCase();
+  const scopedItems = useMemo(() => {
+    if (!userEmail) return items;
+    return scopedItems.filter((document) => {
+      const owner = document.owner.trim().toLowerCase();
+      const sharedWith = document.shared_with.map((value) => value.toLowerCase());
+      return !owner || owner === userEmail || sharedWith.includes(userEmail) || document.id.startsWith("demo-");
+    });
+  }, [items, userEmail]);
+
+  const scopedStats = useMemo(() => ({
+    ...stats,
+    total_documents: scopedItems.length,
+    high_risk_documents: scopedItems.filter((document) => document.summary.risks.some((risk) => risk.severity === "high")).length,
+    average_score: scopedItems.length
+      ? Math.round(scopedItems.reduce((sum, document) => sum + document.summary.overall_score, 0) / scopedItems.length)
+      : 0,
+    shared_documents: scopedItems.filter((document) => document.shared_with.length > 0).length,
+    pending_review_documents: scopedItems.filter((document) => document.review_status === "in_review").length,
+    approved_documents: scopedItems.filter((document) => document.review_status === "approved").length,
+  }), [scopedItems, stats]);
+
+  function completeAuth() {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.includes("@")) {
+      setNotice({ tone: "error", message: "Enter a valid email address to continue." });
+      return;
+    }
+    window.localStorage.setItem("luminaclause:userEmail", normalizedEmail);
+    setEmail(normalizedEmail);
+    setIsLoggedIn(true);
+    setNotice({ tone: "success", message: authMode === "register" ? "Local account created." : "Signed in locally." });
+  }
+
+  function signOut() {
+    window.localStorage.removeItem("luminaclause:userEmail");
+    setIsLoggedIn(false);
+    setEmail("");
+    setMessages([]);
+    setCitations([]);
+    setAnswer("Ask a question to generate a grounded answer with source passages.");
+  }
+
   const visibleDocuments = useMemo(() => {
-    return items.filter((document) => {
+    return scopedItems.filter((document) => {
       const matchesRisk =
         riskFilter === "all" ||
         document.summary.risks.some((risk) => risk.severity === riskFilter);
@@ -118,7 +171,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
           .some((value) => value.toLowerCase().includes(search));
       return matchesRisk && matchesStatus && matchesSearch;
     });
-  }, [documentSearch, items, riskFilter, statusFilter]);
+  }, [documentSearch, scopedItems, riskFilter, statusFilter]);
 
   const selected = useMemo(
     () => visibleDocuments.find((document) => document.id === selectedId) ?? visibleDocuments[0],
@@ -224,7 +277,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
     if (!file) return;
     setBusyAction("upload");
     setNotice(null);
-    const created = await uploadDocumentRequest(file);
+    const created = await uploadDocumentRequest(file, userEmail);
     if (!created) {
       setBusyAction(null);
       setNotice({ tone: "error", message: "Upload failed. Try again." });
@@ -247,7 +300,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
     setBusyAction(uploadFiles.length > 1 ? "bulk-upload" : "upload");
     setNotice(null);
     setUploadProgress({ label: "Preparing upload", detail: `${uploadFiles.length} file(s) selected`, percent: 18 });
-    const created = await uploadDocuments(uploadFiles);
+    const created = await uploadDocuments(uploadFiles, userEmail);
     setUploadProgress({ label: "Processing documents", detail: "Extracting text, risks and summary", percent: 72 });
     if (!created.length) {
       setBusyAction(null);
@@ -634,11 +687,22 @@ ${passageLines}`,
               />
             </div>
             <section id="signin" className="rounded-[28px] bg-white p-6 shadow-panel">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Login / register demo</p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">Enter your email to open the workspace</h2>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Local auth demo</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight">Sign in or create a local workspace</h2>
               <p className="mt-2 leading-7 text-slate-600">
-                This local portfolio build uses lightweight email login to simulate authenticated document ownership.
+                This portfolio build uses local email sessions to simulate authentication, document ownership, and the future auth provider seam.
               </p>
+              <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1 text-sm font-medium">
+                {(["login", "register"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setAuthMode(mode)}
+                    className={`rounded-xl px-3 py-2 ${authMode === mode ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"}`}
+                  >
+                    {mode === "login" ? "Login" : "Register"}
+                  </button>
+                ))}
+              </div>
               <input
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -646,10 +710,10 @@ ${passageLines}`,
                 className="mt-5 w-full rounded-2xl border border-line px-4 py-3 outline-none"
               />
               <button
-                onClick={() => setIsLoggedIn(Boolean(email.trim()))}
+                onClick={completeAuth}
                 className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 font-medium text-white"
               >
-                Continue to dashboard
+                {authMode === "register" ? "Create local workspace" : "Continue to dashboard"}
               </button>
             </section>
           </div>
@@ -719,7 +783,8 @@ ${passageLines}`,
       <div className="mx-auto grid max-w-[1440px] grid-cols-[250px_minmax(0,1fr)] gap-5">
         <aside className="rounded-[28px] bg-white p-5 shadow-panel">
           <div className="mb-8 text-2xl font-semibold tracking-tight">LuminaClause</div>
-          <div className="mb-5 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{email}</div>
+          <div className="mb-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{email}</div>
+          <button onClick={signOut} className="mb-5 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium text-slate-600">Sign out</button>
           <div
             onDragOver={handleUploadDragOver}
             onDragLeave={handleUploadDragLeave}
@@ -814,7 +879,7 @@ ${passageLines}`,
         </aside>
 
         <section className="space-y-5">
-          {view === "overview" && <Overview stats={stats} documents={visibleDocuments} deadlines={deadlines} />}
+          {view === "overview" && <Overview stats={scopedStats} documents={visibleDocuments} deadlines={deadlines} />}
           {view === "document" && selected && (
             <DocumentWorkspace
               selected={selected}

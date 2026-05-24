@@ -71,9 +71,10 @@ export async function askDocumentQuestion(documentId: string, question: string):
   );
 }
 
-export async function uploadDocument(file: File): Promise<DocumentItem | null> {
+export async function uploadDocument(file: File, owner = ""): Promise<DocumentItem | null> {
   const formData = new FormData();
   formData.append("file", file);
+  if (owner) formData.append("owner", owner);
   return requestJson(
     () => fetch(`${API_URL}/documents/upload`, {
       method: "POST",
@@ -83,9 +84,10 @@ export async function uploadDocument(file: File): Promise<DocumentItem | null> {
   );
 }
 
-export async function uploadDocuments(files: File[]): Promise<DocumentItem[]> {
+export async function uploadDocuments(files: File[], owner = ""): Promise<DocumentItem[]> {
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
+  if (owner) formData.append("owner", owner);
   return requestJson(
     () => fetch(`${API_URL}/documents/bulk-upload`, {
       method: "POST",

@@ -15,7 +15,7 @@ LuminaClause is built as a practical **AI Contract / Document Assistant** rather
 | Understand | summaries, fragment search, grounded Q&A with citations and chat history |
 | Review | risk detection, scoring, suggested safer wording |
 | Compare | side-by-side contract comparison and impact notes |
-| Collaborate | comments, sharing, review statuses, activity history |
+| Collaborate | local auth mock, ownership, comments, sharing, review statuses, activity history |
 | Operate | landing page, drag-and-drop upload, deadlines, review queue, dashboard, exportable reports |
 
 ## Product screenshots
@@ -128,6 +128,8 @@ Future provider layer:
 - scoring
 - AI suggestions
 - multi-language flag
+- local email session mock
+- ownership-aware uploads
 - sharing
 - dashboard
 - review comments
@@ -233,6 +235,19 @@ Open:
 
 ## Local demo fallback
 
+### Local auth mode
+
+LuminaClause includes a lightweight local auth simulation for portfolio review:
+
+- email-based login/register UI,
+- browser-local session persistence,
+- uploaded documents tagged with the current workspace owner,
+- sign-out flow,
+- clear migration seam for Clerk, Supabase Auth, or JWT later.
+
+This is intentionally not a production auth provider; it demonstrates the product boundary before cloud identity is added.
+
+
 If package installation is blocked on a given machine, there is also a lightweight local demo mode that reuses the same analysis logic but runs on libraries already available in the environment:
 
 ```powershell
@@ -261,7 +276,7 @@ Then open:
 - Real product framing around a concrete workflow, not just generic chat
 - Full-stack delivery across Next.js and FastAPI
 - Explainable AI-oriented architecture with citations and a swappable provider layer
-- Workflow features beyond MVP: comments, status, deadlines, review queue, archive flow, export
+- Workflow features beyond MVP: local auth mock, ownership, comments, status, deadlines, review queue, archive flow, export
 - Automated backend and API tests
 - Fresh-clone bootstrap scripts and Docker Compose for repeatable setup
 - Clear migration path from local prototype to hosted AI and cloud persistence

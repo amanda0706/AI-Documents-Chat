@@ -117,3 +117,14 @@ def test_delete_document_removes_it_from_collection(client: TestClient) -> None:
     assert delete_response.json()["status"] == "deleted"
     assert all(item["id"] != document["id"] for item in list_response.json())
     assert missing_response.status_code == 404
+
+
+def test_upload_accepts_owner_metadata(client: TestClient) -> None:
+    response = client.post(
+        "/documents/upload",
+        data={"owner": "owner@example.com"},
+        files={"file": ("owned.txt", b"Payment terms are net 60 days.")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["owner"] == "owner@example.com"

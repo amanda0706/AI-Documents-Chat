@@ -37,6 +37,7 @@ def create_document(
     *,
     version_group_id: str | None = None,
     extraction_method: str = "text",
+    owner: str = "",
 ) -> DocumentDetail:
     documents = load_all()
     doc_id = str(uuid4())
@@ -64,7 +65,7 @@ def create_document(
         ocr_applied=extraction_method == "ocr",
         page_count=len(page_texts),
         shared_with=[],
-        owner="",
+        owner=owner,
         counterparty="",
         contract_type="",
         effective_date="",
@@ -103,6 +104,7 @@ def create_document_version(
         summary,
         version_group_id=source.version_group_id or source.id,
         extraction_method=extraction_method,
+        owner=source.owner,
     )
 
 
