@@ -57,6 +57,7 @@ Useful portfolio materials:
 - [API reference](docs/api.md)
 - [Local MVP release checklist](docs/release-checklist.md)
 - [Portfolio summary](docs/portfolio-summary.md)
+- [Deployment guide](docs/deployment.md)
 
 ## Why it is useful
 
@@ -185,6 +186,15 @@ FastAPI backend
 ```
 
 The product is intentionally split so the user-facing workflow can stay stable while the intelligence layer evolves from local heuristics to hosted AI and vector search. The backend also exposes `GET /health` and `GET /metrics` so the local MVP already has a production-style seam for monitoring.
+
+## Deployment
+
+The recommended first portfolio deployment is:
+
+- Backend: Render Docker web service using `render.yaml`
+- Frontend: Vercel project with `frontend` as the root directory
+
+See the full [deployment guide](docs/deployment.md).
 
 ## Docker Compose
 

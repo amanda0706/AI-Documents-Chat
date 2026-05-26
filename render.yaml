@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: luminaclause-api
+    runtime: docker
+    rootDir: backend
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ANALYSIS_PROVIDER
+        value: local
