@@ -6,6 +6,7 @@ import type {
   MetadataDraft,
   QuestionResult,
   ReportResult,
+  RetrievalResult,
   ReviewStatus,
 } from "./types";
 
@@ -54,6 +55,18 @@ export async function compareDocuments(leftId: string, rightId: string): Promise
 
 export async function fetchReport(documentId: string): Promise<ReportResult | null> {
   return requestJson(() => fetch(`${API_URL}/documents/${documentId}/report`, { cache: "no-store" }), null);
+}
+
+export async function retrieveDocumentContext(
+  documentId: string,
+  query: string,
+  topK = 3,
+): Promise<RetrievalResult | null> {
+  const params = new URLSearchParams({ query, top_k: String(topK) });
+  return requestJson(
+    () => fetch(`${API_URL}/documents/${documentId}/retrieval?${params.toString()}`, { cache: "no-store" }),
+    null,
+  );
 }
 
 export async function fetchDeadlines(): Promise<DeadlineItem[]> {

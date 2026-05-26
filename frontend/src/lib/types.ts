@@ -75,6 +75,18 @@ export type MetadataDraft = Pick<
   "owner" | "counterparty" | "contract_type" | "effective_date" | "expiry_date" | "renewal_date"
 >;
 
+export type SearchResult = {
+  fragment: Fragment;
+  score: number;
+};
+
+export type RetrievalResult = {
+  query: string;
+  top_k: number;
+  matches: SearchResult[];
+  context: string;
+};
+
 export type QuestionResult = {
   answer: string;
   citations: Fragment[];

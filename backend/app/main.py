@@ -19,6 +19,7 @@ from .models import (
     QuestionRequest,
     QuestionResponse,
     ReportResponse,
+    RetrievalResult,
     ReviewStatusRequest,
     SearchResult,
     ShareRequest,
@@ -173,6 +174,36 @@ def search_document(doc_id: str, query: str):
         for fragment in item.fragments
     ]
     return sorted([result for result in results if result.score > 0], key=lambda result: result.score, reverse=True)
+
+
+@app.get("/documents/{doc_id}/retrieval", response_model=RetrievalResult)
+def retrieve_document_context(doc_id: str, query: str, top_k: int = 3):
+    item = get_document(doc_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Document not found")
+    safe_top_k = max(1, min(top_k, 8))
+    scored = [
+        SearchResult(fragment=fragment, score=similarity_score(query, fragment.text))
+        for fragment in item.fragments
+    ]
+    matches = sorted(
+        [result for result in scored if result.score > 0],
+        key=lambda result: result.score,
+        reverse=True,
+    )[:safe_top_k]
+    context = "\n\n".join(
+        f"Source page {match.fragment.page}: {match.fragment.text}"
+        for match in matches
+    )
+    add_activity(
+        doc_id,
+        ActivityItem(
+            type="retrieval",
+            label="Semantic retrieval run",
+            detail=f"Query: {query}",
+        ),
+    )
+    return RetrievalResult(query=query, top_k=safe_top_k, matches=matches, context=context)
 
 
 @app.post("/documents/{doc_id}/ask", response_model=QuestionResponse)

@@ -152,3 +152,15 @@ def test_upload_sanitizes_filename(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json()["filename"] == "Unsafe-Contract-2026.txt"
+
+
+def test_retrieval_endpoint_returns_ranked_context(client: TestClient) -> None:
+    document = upload_contract(client)
+
+    response = client.get(f"/documents/{document['id']}/retrieval", params={"query": "payment terms", "top_k": 2})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["query"] == "payment terms"
+    assert payload["matches"]
+    assert "Source page" in payload["context"]

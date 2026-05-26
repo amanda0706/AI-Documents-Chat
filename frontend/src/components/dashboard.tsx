@@ -7,6 +7,7 @@ import {
   compareDocuments,
   deleteDocument,
   fetchReport,
+  retrieveDocumentContext,
   saveDocumentMetadata,
   shareDocument as shareDocumentRequest,
   updateDocumentStatus,
@@ -21,6 +22,7 @@ import type {
   DocumentItem,
   MetadataDraft,
   ReportResult,
+  RetrievalResult,
   ReviewStatus,
   RiskItem,
   RiskSeverity,
@@ -85,6 +87,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
   const [citations, setCitations] = useState<DocumentItem["fragments"]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [query, setQuery] = useState("");
+  const [retrieval, setRetrieval] = useState<RetrievalResult | null>(null);
   const [shareEmail, setShareEmail] = useState("");
   const [commentBody, setCommentBody] = useState("");
   const [metadataDraft, setMetadataDraft] = useState<MetadataDraft>({
@@ -117,7 +120,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
   const userEmail = email.trim().toLowerCase();
   const scopedItems = useMemo(() => {
     if (!userEmail) return items;
-    return scopedItems.filter((document) => {
+    return items.filter((document) => {
       const owner = document.owner.trim().toLowerCase();
       const sharedWith = document.shared_with.map((value) => value.toLowerCase());
       return !owner || owner === userEmail || sharedWith.includes(userEmail) || document.id.startsWith("demo-");
@@ -158,7 +161,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
   }
 
   const visibleDocuments = useMemo(() => {
-    return scopedItems.filter((document) => {
+    return items.filter((document) => {
       const matchesRisk =
         riskFilter === "all" ||
         document.summary.risks.some((risk) => risk.severity === riskFilter);
@@ -218,6 +221,22 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines }: Dashbo
       expiry_date: document.expiry_date,
       renewal_date: document.renewal_date,
     });
+  }
+
+  async function runRetrieval() {
+    if (!selected || !query.trim()) return;
+    const result = selected.id.startsWith("demo-")
+      ? {
+          query,
+          top_k: 3,
+          matches: selected.fragments
+            .filter((fragment) => fragment.text.toLowerCase().includes(query.toLowerCase().split(/\s+/)[0] ?? ""))
+            .slice(0, 3)
+            .map((fragment) => ({ fragment, score: 0.82 })),
+          context: "Demo retrieval context generated locally.",
+        }
+      : await retrieveDocumentContext(selected.id, query, 3);
+    setRetrieval(result);
   }
 
   async function askQuestion() {
@@ -885,6 +904,8 @@ ${passageLines}`,
               selected={selected}
               query={query}
               setQuery={setQuery}
+              retrieval={retrieval}
+              runRetrieval={runRetrieval}
               fragments={filteredFragments}
               question={question}
               setQuestion={setQuestion}
@@ -1090,6 +1111,8 @@ function DocumentWorkspace(props: {
   selected: DocumentItem;
   query: string;
   setQuery: (value: string) => void;
+  retrieval: RetrievalResult | null;
+  runRetrieval: () => void;
   fragments: DocumentItem["fragments"];
   question: string;
   setQuestion: (value: string) => void;
@@ -1132,7 +1155,10 @@ function DocumentWorkspace(props: {
               Extraction: {selected.ocr_applied ? "OCR" : "native text"}
             </p>
           </div>
-          <input value={props.query} onChange={(event) => props.setQuery(event.target.value)} placeholder="Search fragments" className="w-64 rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
+          <div className="flex gap-2">
+            <input value={props.query} onChange={(event) => props.setQuery(event.target.value)} placeholder="Search fragments" className="w-64 rounded-2xl border border-line px-4 py-3 text-sm outline-none" />
+            <button onClick={props.runRetrieval} className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white">Retrieve</button>
+          </div>
         </div>
         <div className="space-y-4">
           {props.fragments.map((fragment) => (
@@ -1148,6 +1174,25 @@ function DocumentWorkspace(props: {
         <Panel title="AI Summary">
           <p className="leading-7 text-slate-700">{selected.summary.summary}</p>
         </Panel>
+        <Panel title="Semantic retrieval">
+          <p className="mb-3 text-sm leading-6 text-slate-500">Local RAG-style context search. Later this can be swapped for embeddings + pgvector.</p>
+          {props.retrieval?.matches.length ? (
+            <div className="space-y-3">
+              {props.retrieval.matches.map((match) => (
+                <div key={match.fragment.id} className="rounded-2xl bg-blue-50 p-4 text-sm leading-6 text-slate-700">
+                  <div className="mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">
+                    <span>Page {match.fragment.page}</span>
+                    <span>{Math.round(match.score * 100)}%</span>
+                  </div>
+                  {match.fragment.text}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm leading-6 text-slate-500">Type a phrase above and click Retrieve to inspect the source context.</p>
+          )}
+        </Panel>
+
         <Panel title="Contract metadata">
           <div className="space-y-3">
             <input value={props.metadataDraft.owner} onChange={(event) => props.setMetadataDraft({ ...props.metadataDraft, owner: event.target.value })} placeholder="Owner / assignee" className="w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none" />

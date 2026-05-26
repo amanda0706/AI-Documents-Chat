@@ -83,6 +83,13 @@ class SearchResult(BaseModel):
     score: float
 
 
+class RetrievalResult(BaseModel):
+    query: str
+    top_k: int
+    matches: list[SearchResult]
+    context: str
+
+
 class QuestionRequest(BaseModel):
     question: str
 
