@@ -139,6 +139,7 @@ Future provider layer:
 - review queue
 - exportable reports
 - document archive workflow
+- health and metrics endpoints for production-readiness checks
 
 ## Stack
 
@@ -164,7 +165,7 @@ FastAPI backend
               +--> hosted provider later
 ```
 
-The product is intentionally split so the user-facing workflow can stay stable while the intelligence layer evolves from local heuristics to hosted AI and vector search.
+The product is intentionally split so the user-facing workflow can stay stable while the intelligence layer evolves from local heuristics to hosted AI and vector search. The backend also exposes `GET /health` and `GET /metrics` so the local MVP already has a production-style seam for monitoring.
 
 ## Docker Compose
 

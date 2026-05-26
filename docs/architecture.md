@@ -50,3 +50,8 @@ Docker Compose runs two services:
 - `backend`: FastAPI service on port `8000`, with `/app/data` persisted in the `backend-data` volume.
 
 The frontend uses `NEXT_PUBLIC_API_URL=/api` in the browser and `INTERNAL_API_URL=http://backend:8000` for server-side rewrites inside the Docker network.
+
+
+## Operational readiness
+
+The backend exposes `/health` for uptime checks and `/metrics` for a compact local observability snapshot. Today the metrics are computed from the local JSON store; after deployment they can feed cloud logs, dashboards, or alerting without changing the product workflow.

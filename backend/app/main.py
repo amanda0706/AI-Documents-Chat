@@ -16,6 +16,7 @@ from .models import (
     DashboardStats,
     DeadlineItem,
     MetadataRequest,
+    MetricsResponse,
     QuestionRequest,
     QuestionResponse,
     ReportResponse,
@@ -64,6 +65,27 @@ def health() -> dict[str, str]:
 @app.get("/dashboard", response_model=DashboardStats)
 def dashboard():
     return build_dashboard_stats(list_documents())
+
+
+@app.get("/metrics", response_model=MetricsResponse)
+def metrics():
+    documents = list_documents()
+    stats = build_dashboard_stats(documents)
+    latest_upload = ""
+    if documents:
+        latest_upload = documents[-1].filename
+    return MetricsResponse(
+        service="luminaclause-api",
+        total_documents=len(documents),
+        total_fragments=sum(len(document.fragments) for document in documents),
+        total_risks=sum(len(document.summary.risks) for document in documents),
+        high_risk_documents=stats.high_risk_documents,
+        average_score=stats.average_score,
+        shared_documents=stats.shared_documents,
+        comments_count=sum(len(document.comments) for document in documents),
+        activity_events=sum(len(document.activity) for document in documents),
+        latest_upload_filename=latest_upload,
+    )
 
 @app.get("/deadlines", response_model=list[DeadlineItem])
 def deadlines():

@@ -39,6 +39,25 @@ Returns portfolio-level review metrics.
 
 Returns expiry and renewal reminders derived from document metadata.
 
+### `GET /metrics`
+
+Returns an operational snapshot for local monitoring and future production observability.
+
+```json
+{
+  "service": "luminaclause-api",
+  "total_documents": 2,
+  "total_fragments": 6,
+  "total_risks": 3,
+  "high_risk_documents": 1,
+  "average_score": 62,
+  "shared_documents": 1,
+  "comments_count": 4,
+  "activity_events": 9,
+  "latest_upload_filename": "supplier-agreement.txt"
+}
+```
+
 ## Documents
 
 ### `GET /documents`

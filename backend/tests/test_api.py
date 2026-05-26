@@ -164,3 +164,19 @@ def test_retrieval_endpoint_returns_ranked_context(client: TestClient) -> None:
     assert payload["query"] == "payment terms"
     assert payload["matches"]
     assert "Source page" in payload["context"]
+
+
+def test_metrics_endpoint_reports_operational_snapshot(client: TestClient) -> None:
+    document = upload_contract(client, "metrics-contract.txt")
+    client.post(f"/documents/{document['id']}/comments", json={"author": "qa@example.com", "body": "Looks risky."})
+
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["service"] == "luminaclause-api"
+    assert payload["total_documents"] == 1
+    assert payload["total_fragments"] >= 1
+    assert payload["comments_count"] == 1
+    assert payload["activity_events"] >= 2
+    assert payload["latest_upload_filename"] == "metrics-contract.txt"

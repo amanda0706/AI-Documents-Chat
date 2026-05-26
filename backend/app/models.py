@@ -183,3 +183,16 @@ class DeadlineItem(BaseModel):
     kind: str
     due_date: str
     days_remaining: int
+
+
+class MetricsResponse(BaseModel):
+    service: str
+    total_documents: int
+    total_fragments: int
+    total_risks: int
+    high_risk_documents: int
+    average_score: int
+    shared_documents: int
+    comments_count: int
+    activity_events: int
+    latest_upload_filename: str = ""
