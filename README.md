@@ -9,7 +9,7 @@ LuminaClause is built as a practical **AI Contract / Document Assistant** rather
 
 ## Product snapshot
 
-![LuminaClause interface concept](design/luminaclause-concept.png)
+![LuminaClause dashboard preview](docs/screenshots/dashboard.png)
 
 | Area | What it does |
 | --- | --- |
