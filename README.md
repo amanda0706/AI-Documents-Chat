@@ -39,6 +39,25 @@ Side-by-side differences with an executive summary and impact notes.
 
 ![LuminaClause contract comparison](docs/screenshots/compare-contracts.png)
 
+
+## Portfolio value
+
+LuminaClause is built to show practical full-stack product engineering, not just isolated AI calls. The project demonstrates:
+
+- product thinking around a real document-review workflow,
+- frontend execution with a polished dashboard and review workspace,
+- backend API design with FastAPI and validated payloads,
+- local RAG-ready retrieval and source-grounded answers,
+- test coverage, CI, Docker runtime, API docs, and operational endpoints,
+- a clean migration path toward OpenAI/Azure OpenAI, PostgreSQL, pgvector, storage, and cloud deployment.
+
+Useful portfolio materials:
+
+- [Architecture notes](docs/architecture.md)
+- [API reference](docs/api.md)
+- [Local MVP release checklist](docs/release-checklist.md)
+- [Portfolio summary](docs/portfolio-summary.md)
+
 ## Why it is useful
 
 Contract review is often slow, repetitive, and opaque for non-lawyers. LuminaClause shortens the first-pass review loop by helping users:
