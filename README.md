@@ -310,6 +310,8 @@ After cloning the repository on a new machine:
 
 Full API reference with examples: [`docs/api.md`](docs/api.md).
 
+Local MVP release checklist: [`docs/release-checklist.md`](docs/release-checklist.md).
+
 
 ### Upload safety
 
