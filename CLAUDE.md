@@ -116,6 +116,17 @@ git checkout -- frontend/next-env.d.ts
 - `ANALYSIS_PROVIDER=claude` — active; sends retrieved fragments to Anthropic Messages API; structured fields (risks, score, suggestions) remain local.
 - `ANALYSIS_PROVIDER=openai` — adapter seam ready; SDK calls not yet wired.
 
+`backend/.env` is loaded automatically at startup (`python-dotenv`) and is gitignored. To activate Claude locally:
+
+```powershell
+cp backend/.env.example backend/.env
+# edit backend/.env:
+#   ANALYSIS_PROVIDER=claude
+#   ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Never commit `backend/.env`. It is covered by `.gitignore:1` (`.env` rule).
+
 **Privacy rule:** when a cloud provider is active, document fragments are sent to a third-party API. Never enable a cloud provider for real sensitive contracts without explicit consent from all relevant parties and a review of the provider's data-handling terms.
 
 ## Current recommended next step

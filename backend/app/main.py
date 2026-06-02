@@ -3,8 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+
+# Load backend/.env before any provider or settings are read.
+# override=False means already-set environment variables (e.g. Docker/CI) win.
+# The file is optional — local mode works fine without it.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)
 from .analyzer import similarity_score
 from .extraction import extract_pdf_pages
 from .models import (

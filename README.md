@@ -126,22 +126,31 @@ Provider architecture:
 
 > ⚠️ **Privacy notice:** when a cloud provider is active, document text (or retrieved fragments of it) is sent to a third-party API (Anthropic or OpenAI). **Do not upload real sensitive or confidential contracts unless you have explicit consent from all relevant parties and have reviewed the provider's data-handling terms.**
 
-Set these in `backend/.env` (never commit real keys):
+`backend/.env` is loaded automatically at startup and is gitignored — safe for local keys.
 
-```env
+```powershell
+# 1. Create your local env file from the example
+cp backend/.env.example backend/.env
+
+# 2. Open backend/.env and set:
 ANALYSIS_PROVIDER=claude
-ANTHROPIC_API_KEY=sk-ant-...
-# AI_MODEL=claude-sonnet-4-6   # optional — overrides the default model
+ANTHROPIC_API_KEY=sk-ant-...        # your real key — never commit this file
+# AI_MODEL=claude-sonnet-4-6        # optional model override
+
+# 3. Start the backend — Claude is now active
+uvicorn app.main:app --reload
 ```
 
 ### Enabling OpenAI (optional)
 
-Same privacy notice applies. Set in `backend/.env`:
+Same privacy notice and workflow apply:
 
-```env
+```powershell
+cp backend/.env.example backend/.env
+# then in backend/.env:
 ANALYSIS_PROVIDER=openai
 OPENAI_API_KEY=sk-...
-# AI_MODEL=gpt-4o              # optional — overrides the default model
+# AI_MODEL=gpt-4o
 ```
 
 If a cloud provider is selected without its key the backend raises a clear error at startup — no partial or silent fallback occurs.
