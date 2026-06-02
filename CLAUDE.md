@@ -110,13 +110,15 @@ git checkout -- frontend/next-env.d.ts
 
 ## Current recommended next step
 
-Before adding real Claude/OpenAI calls, add a clean **cloud AI provider adapter seam**:
+The **cloud AI provider adapter seam is complete** (`ClaudeProvider`, `OpenAIProvider` stubs in `backend/app/providers.py`, 46 backend tests pass).
 
-1. Define provider configuration keys in `.env.example` and `backend/.env.example`.
-2. Add a placeholder Claude/OpenAI provider class that is not active unless configured.
-3. Keep local provider as default.
-4. Document how to enable cloud AI later.
-5. Add tests that local provider remains default when no key exists.
+The next meaningful step is to **wire real SDK calls** into the stub methods:
+
+1. Install `anthropic` SDK in `backend/requirements.txt` (or `openai` for OpenAI path).
+2. Implement `ClaudeProvider.summarize_document`, `.answer`, and `.compare` using the Anthropic Messages API with retrieved fragments as context.
+3. Return citations: `answer()` must still return `tuple[str, list[str]]` where the list contains the verbatim fragment texts used, so the `/ask` route can match them back to stored fragments.
+4. Add integration tests gated by `pytest.importorskip` or `pytest.mark.skipif` so CI never needs a real key.
+5. Update `docs/architecture.md` to show the real provider as active.
 
 Do not break local-first operation.
 

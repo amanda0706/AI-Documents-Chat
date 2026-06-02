@@ -227,6 +227,20 @@ Request:
 
 Response includes an executive summary and categorized differences.
 
+## AI provider configuration
+
+All analysis routes (`/upload`, `/ask`, `/compare`, `/documents/{id}/versions`) run through the `AnalysisProvider` interface. The active provider is selected by the `ANALYSIS_PROVIDER` environment variable.
+
+| Value | Key required | Notes |
+|---|---|---|
+| `local` (default) | none | deterministic, always works |
+| `claude` | `ANTHROPIC_API_KEY` | stub ready; set key to activate |
+| `openai` | `OPENAI_API_KEY` | stub ready; set key to activate |
+
+Optional: set `AI_MODEL` to override the default model for the selected cloud provider.
+
+If a cloud provider is selected without its key the backend raises a clear error at startup; no partial or silent fallback occurs.
+
 ## Production migration notes
 
 Current persistence is local JSON/filesystem. The API is intentionally shaped so these routes can later be backed by:
@@ -234,5 +248,5 @@ Current persistence is local JSON/filesystem. The API is intentionally shaped so
 - real authentication and workspace permissions,
 - PostgreSQL + pgvector,
 - object storage for original files,
-- OpenAI/Azure OpenAI provider adapters,
+- Claude / OpenAI provider adapters (stub seam already in place),
 - hosted observability and audit logging.

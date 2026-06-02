@@ -6,28 +6,39 @@ Next.js frontend
       v
 FastAPI backend
       |
-      +--> local document store
-      +--> analysis provider interface
+      +--> local document store (JSON / filesystem)
+      +--> AnalysisProvider interface
               |
-              +--> local provider now
-              +--> hosted provider later
+              +--> LocalProvider       (default, no key required)
+              +--> ClaudeProvider      (stub — set ANTHROPIC_API_KEY)
+              +--> OpenAIProvider      (stub — set OPENAI_API_KEY)
 ```
 
 ## Current mode
 
 - Documents are stored locally.
 - Metadata is stored in JSON.
-- Analysis runs through a provider interface.
+- Analysis runs through a provider interface (`AnalysisProvider`).
 - The active provider is deterministic, local, and explainable.
 - Provider selection is configuration-driven through `ANALYSIS_PROVIDER`.
 - Core API payloads use validated enums and date-shaped metadata fields.
+
+## Provider configuration
+
+| `ANALYSIS_PROVIDER` | Key required | Status |
+|---|---|---|
+| `local` (default) | none | active |
+| `claude` | `ANTHROPIC_API_KEY` | stub ready |
+| `openai` | `OPENAI_API_KEY` | stub ready |
+
+Selecting a cloud provider without the matching key raises a clear `ValueError` at startup. The optional `AI_MODEL` variable overrides the default model for the selected provider.
 
 ## Future mode
 
 - PostgreSQL stores users, documents, chats, shares, and clause metadata.
 - pgvector stores embeddings.
 - Object storage keeps the original files.
-- A hosted provider can replace the local provider without changing the product workflow.
+- Cloud provider stubs (`ClaudeProvider`, `OpenAIProvider`) are wired to real SDK calls.
 
 ## Why this split matters
 

@@ -115,21 +115,40 @@ Optional local OCR:
 
 Provider architecture:
 
-- a shared analysis provider contract,
-- a local provider active today,
-- a clean seam for future OpenAI / Azure OpenAI providers.
+- a shared `AnalysisProvider` interface used by every route,
+- `LocalProvider` — active by default, no API key required,
+- `ClaudeProvider` — adapter seam for Anthropic Claude (stub, key-guarded),
+- `OpenAIProvider` — adapter seam for OpenAI (stub, key-guarded).
 
-Configuration today:
+Configuration today (default — no key required):
 
 ```env
 ANALYSIS_PROVIDER=local
 ```
 
-The app already reads the provider choice from environment variables, so switching intelligence backends later does not require changing the product flow.
+To enable Claude once an Anthropic key is available:
+
+```env
+ANALYSIS_PROVIDER=claude
+ANTHROPIC_API_KEY=sk-ant-...
+# AI_MODEL=claude-sonnet-4-6   # optional override
+```
+
+To enable OpenAI:
+
+```env
+ANALYSIS_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+# AI_MODEL=gpt-4o              # optional override
+```
+
+If a cloud provider is selected without the matching key the backend raises a clear `ValueError` at startup and falls back cleanly. The local provider remains the default and always works without credentials.
+
+The app reads the provider choice from environment variables, so switching intelligence backends does not require changing any product flow or API contract.
 
 Future provider layer:
 
-- OpenAI / Azure OpenAI for richer summaries and Q&A,
+- Claude / OpenAI SDK calls wired into the stub methods,
 - embeddings for semantic retrieval,
 - PostgreSQL + pgvector,
 - object storage,
@@ -322,7 +341,7 @@ Then open:
 
 Current local checks:
 
-- Backend test suite: `31 passed`
+- Backend test suite: `46 passed`
 - Frontend production build: `next build` passes
 - GitHub Actions: backend tests + frontend build on push and pull request
 - Docker Compose stack: frontend + FastAPI backend with persistent backend volume
@@ -380,9 +399,10 @@ The `samples/` directory contains two small contract examples that are useful wh
 
 ## Roadmap toward production
 
-1. Replace local heuristic analysis with provider adapter
-2. Add PostgreSQL + pgvector
-3. Add real authentication and permissions
-4. Store files in S3 / Blob Storage
-5. Add audit log, comments, and workspace roles
-6. Deploy frontend + backend
+1. ~~Add cloud AI provider adapter seam (Claude/OpenAI)~~ ✓ done
+2. Wire real SDK calls into `ClaudeProvider` / `OpenAIProvider` stubs
+3. Add PostgreSQL + pgvector
+4. Add real authentication and permissions
+5. Store files in S3 / Blob Storage
+6. Add audit log, comments, and workspace roles
+7. Deploy frontend + backend

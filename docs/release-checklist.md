@@ -30,6 +30,7 @@ Local-first full-stack MVP before cloud deployment.
 - Backend CI
 - Frontend build CI
 - API docs
+- Cloud AI provider adapter seam (LocalProvider default, ClaudeProvider + OpenAIProvider stubs, key-guarded)
 
 ## Local validation
 
@@ -75,10 +76,10 @@ docker compose up --build
 
 - Auth is local mock.
 - Storage is JSON/filesystem.
-- AI provider is local deterministic logic.
+- AI provider is local deterministic logic (ClaudeProvider/OpenAIProvider stubs ready).
 - No pgvector yet.
 - No public deployment yet.
 
 ## Next milestone
 
-Cloud deployment + real auth + PostgreSQL/pgvector + OpenAI/Azure OpenAI provider.
+Wire real SDK calls into ClaudeProvider/OpenAIProvider, then cloud deployment + real auth + PostgreSQL/pgvector.
