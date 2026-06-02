@@ -58,6 +58,8 @@ Useful portfolio materials:
 - [Local MVP release checklist](docs/release-checklist.md)
 - [Portfolio summary](docs/portfolio-summary.md)
 - [Deployment guide](docs/deployment.md)
+- [Claude handoff](CLAUDE.md)
+- [Detailed Claude handoff](docs/claude-handoff.md)
 
 ## Why it is useful
 
