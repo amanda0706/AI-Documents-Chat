@@ -12,3 +12,4 @@ server.err.log
 msa.pdf
 supplier.pdf
 .tmp/
+.claude/
