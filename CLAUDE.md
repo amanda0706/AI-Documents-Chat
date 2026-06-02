@@ -108,27 +108,34 @@ git checkout -- frontend/next-env.d.ts
 - Pytest may fail if it uses the default Windows temp directory. Use the `.tmp` command block above.
 - If PowerShell shows `>>`, the user is inside an unfinished multiline command. Tell them to press `Ctrl+C`.
 
+## Current state of the AI provider layer
+
+`ClaudeProvider` is **fully implemented** (`anthropic==0.55.0` in `requirements.txt`, 55 backend tests pass, all mocked — no real key needed for tests or local run).
+
+- `ANALYSIS_PROVIDER=local` — default, no key, no network calls, all analysis on-device.
+- `ANALYSIS_PROVIDER=claude` — active; sends retrieved fragments to Anthropic Messages API; structured fields (risks, score, suggestions) remain local.
+- `ANALYSIS_PROVIDER=openai` — adapter seam ready; SDK calls not yet wired.
+
+**Privacy rule:** when a cloud provider is active, document fragments are sent to a third-party API. Never enable a cloud provider for real sensitive contracts without explicit consent from all relevant parties and a review of the provider's data-handling terms.
+
 ## Current recommended next step
 
-The **cloud AI provider adapter seam is complete** (`ClaudeProvider`, `OpenAIProvider` stubs in `backend/app/providers.py`, 46 backend tests pass).
+Wire `OpenAIProvider` SDK calls to match the `ClaudeProvider` pattern:
 
-The next meaningful step is to **wire real SDK calls** into the stub methods:
+1. Add `openai` to `backend/requirements.txt`.
+2. Implement `OpenAIProvider.summarize_document`, `.answer`, `.compare` following the same JSON-structured prompt pattern used in `ClaudeProvider`.
+3. Add mocked unit tests (mirror `test_providers.py` Claude tests).
+4. Run backend tests and frontend build before committing.
 
-1. Install `anthropic` SDK in `backend/requirements.txt` (or `openai` for OpenAI path).
-2. Implement `ClaudeProvider.summarize_document`, `.answer`, and `.compare` using the Anthropic Messages API with retrieved fragments as context.
-3. Return citations: `answer()` must still return `tuple[str, list[str]]` where the list contains the verbatim fragment texts used, so the `/ask` route can match them back to stored fragments.
-4. Add integration tests gated by `pytest.importorskip` or `pytest.mark.skipif` so CI never needs a real key.
-5. Update `docs/architecture.md` to show the real provider as active.
-
-Do not break local-first operation.
+Do not break local-first operation. Do not require any API key for tests or CI.
 
 ## Product direction
 
 The next serious production upgrades are:
 
+- OpenAI provider SDK calls (mirrors ClaudeProvider — seam is already in place),
 - real auth/workspaces,
 - PostgreSQL persistence,
 - pgvector embeddings,
 - object storage,
-- Claude/OpenAI/Azure provider,
 - deployment once a free/acceptable hosting path is chosen.

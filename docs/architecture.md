@@ -25,20 +25,26 @@ FastAPI backend
 
 ## Provider configuration
 
+**Local mode is the default.** No API key, no network calls, no document text leaves the machine.
+
 | `ANALYSIS_PROVIDER` | Key required | Status |
 |---|---|---|
-| `local` (default) | none | active |
-| `claude` | `ANTHROPIC_API_KEY` | stub ready |
-| `openai` | `OPENAI_API_KEY` | stub ready |
+| `local` (default) | none | active — all analysis runs on-device |
+| `claude` | `ANTHROPIC_API_KEY` | implemented — sends fragments to Anthropic API |
+| `openai` | `OPENAI_API_KEY` | adapter seam ready — SDK calls not yet wired |
 
-Selecting a cloud provider without the matching key raises a clear `ValueError` at startup. The optional `AI_MODEL` variable overrides the default model for the selected provider.
+Selecting a cloud provider without the matching key raises a clear `ValueError` at startup — no silent fallback. The optional `AI_MODEL` variable overrides the default model for the selected provider.
+
+### Privacy and consent
+
+When `ANALYSIS_PROVIDER=claude` or `openai` is set, retrieved document fragments are sent to the selected third-party API. **Only enable a cloud provider if you have explicit consent from all relevant parties and have reviewed the provider's data-handling and retention terms.** Do not process real sensitive or confidential contracts through a cloud provider without that consent.
 
 ## Future mode
 
 - PostgreSQL stores users, documents, chats, shares, and clause metadata.
 - pgvector stores embeddings.
 - Object storage keeps the original files.
-- Cloud provider stubs (`ClaudeProvider`, `OpenAIProvider`) are wired to real SDK calls.
+- `OpenAIProvider` SDK calls wired (mirrors the existing `ClaudeProvider` pattern).
 
 ## Why this split matters
 

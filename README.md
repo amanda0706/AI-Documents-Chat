@@ -117,38 +117,39 @@ Provider architecture:
 
 - a shared `AnalysisProvider` interface used by every route,
 - `LocalProvider` — active by default, no API key required,
-- `ClaudeProvider` — adapter seam for Anthropic Claude (stub, key-guarded),
-- `OpenAIProvider` — adapter seam for OpenAI (stub, key-guarded).
+- `ClaudeProvider` — fully implemented, activated by setting `ANTHROPIC_API_KEY`,
+- `OpenAIProvider` — adapter seam ready, key-guarded.
 
-Configuration today (default — no key required):
+**Local mode is the default and requires no credentials.** The local provider runs entirely on your machine — no document text ever leaves it.
 
-```env
-ANALYSIS_PROVIDER=local
-```
+### Enabling Claude (optional)
 
-To enable Claude once an Anthropic key is available:
+> ⚠️ **Privacy notice:** when a cloud provider is active, document text (or retrieved fragments of it) is sent to a third-party API (Anthropic or OpenAI). **Do not upload real sensitive or confidential contracts unless you have explicit consent from all relevant parties and have reviewed the provider's data-handling terms.**
+
+Set these in `backend/.env` (never commit real keys):
 
 ```env
 ANALYSIS_PROVIDER=claude
 ANTHROPIC_API_KEY=sk-ant-...
-# AI_MODEL=claude-sonnet-4-6   # optional override
+# AI_MODEL=claude-sonnet-4-6   # optional — overrides the default model
 ```
 
-To enable OpenAI:
+### Enabling OpenAI (optional)
+
+Same privacy notice applies. Set in `backend/.env`:
 
 ```env
 ANALYSIS_PROVIDER=openai
 OPENAI_API_KEY=sk-...
-# AI_MODEL=gpt-4o              # optional override
+# AI_MODEL=gpt-4o              # optional — overrides the default model
 ```
 
-If a cloud provider is selected without the matching key the backend raises a clear `ValueError` at startup and falls back cleanly. The local provider remains the default and always works without credentials.
+If a cloud provider is selected without its key the backend raises a clear error at startup — no partial or silent fallback occurs.
 
-The app reads the provider choice from environment variables, so switching intelligence backends does not require changing any product flow or API contract.
+The app reads the provider choice from environment variables, so switching intelligence backends does not require changing any product code or API contract.
 
 Future provider layer:
 
-- Claude / OpenAI SDK calls wired into the stub methods,
 - embeddings for semantic retrieval,
 - PostgreSQL + pgvector,
 - object storage,
