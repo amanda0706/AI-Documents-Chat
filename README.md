@@ -60,6 +60,7 @@ Useful portfolio materials:
 - [Deployment guide](docs/deployment.md)
 - [Claude handoff](CLAUDE.md)
 - [Detailed Claude handoff](docs/claude-handoff.md)
+- [Contributing guide](CONTRIBUTING.md)
 
 ## Why it is useful
 
