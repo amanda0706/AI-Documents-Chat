@@ -8,9 +8,10 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load backend/.env before any provider or settings are read.
-# override=False means already-set environment variables (e.g. Docker/CI) win.
-# The file is optional — local mode works fine without it.
-load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)
+# override=True so local .env values win over stale empty system env vars.
+# Safe in Docker/CI because backend/.env is gitignored and never deployed —
+# load_dotenv is a no-op when the file does not exist.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=True)
 from .analyzer import similarity_score
 from .extraction import extract_pdf_pages
 from .models import (

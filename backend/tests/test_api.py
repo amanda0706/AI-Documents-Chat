@@ -3,8 +3,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.app import store
+from backend.app import main, store
 from backend.app.main import app
+from backend.app.providers import LocalProvider
 
 
 @pytest.fixture(autouse=True)
@@ -12,6 +13,18 @@ def isolated_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(store, "DATA_DIR", tmp_path)
     monkeypatch.setattr(store, "UPLOADS_DIR", tmp_path / "uploads")
     monkeypatch.setattr(store, "INDEX_FILE", tmp_path / "documents.json")
+
+
+@pytest.fixture(autouse=True)
+def force_local_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pin the API-level provider to LocalProvider for all test_api tests.
+
+    main.py loads backend/.env at import time (load_dotenv with override=True),
+    which may set ANALYSIS_PROVIDER=claude in the test process environment.
+    Without this fixture every upload/ask would make real Claude API calls,
+    making the test suite slow, non-deterministic, and key-dependent.
+    """
+    monkeypatch.setattr(main, "provider", LocalProvider())
 
 
 @pytest.fixture()

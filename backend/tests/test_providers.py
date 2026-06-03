@@ -9,7 +9,12 @@ import pytest
 from backend.app.providers import ClaudeProvider, LocalProvider, OpenAIProvider, get_provider
 
 
-def test_default_provider_is_local() -> None:
+def test_default_provider_is_local(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Explicitly clear provider vars so a local backend/.env loaded at startup
+    # does not bleed into this assertion.
+    monkeypatch.delenv("ANALYSIS_PROVIDER", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     provider = get_provider()
     assert provider.name == "local"
 
