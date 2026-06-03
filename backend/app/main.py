@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from uuid import uuid4
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 # Load backend/.env before any provider or settings are read.
 # override=True so local .env values win over stale empty system env vars.
@@ -286,6 +288,73 @@ def ask_document(doc_id: str, payload: QuestionRequest):
         ),
     )
     return QuestionResponse(answer=answer, citations=citations)
+
+
+@app.post("/documents/{doc_id}/ask/stream")
+async def stream_ask_document(doc_id: str, payload: QuestionRequest):
+    """
+    Stream a document-grounded answer as Server-Sent Events (SSE).
+
+    Event sequence
+    --------------
+    ::
+
+        data: {"type": "delta",     "text": "Payment "}
+        data: {"type": "delta",     "text": "terms "}
+        ...
+        data: {"type": "citations", "citations": [{...}, ...]}
+        data: {"type": "done"}
+
+    The complete answer is computed first (via ``provider.answer``), then
+    delivered word-by-word so the browser can render incrementally.  Replace
+    the ``provider.answer`` call with a native SDK streaming call
+    (e.g. ``anthropic.messages.stream()``) to achieve true token-level
+    streaming without changing the SSE contract.
+
+    Falls back gracefully: the non-streaming ``POST /documents/{id}/ask``
+    endpoint remains fully functional alongside this one.
+    """
+    item = get_document(doc_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Resolve the complete answer first so citations are known before streaming
+    # begins.  The streaming is purely in the delivery to the client.
+    answer_text, used_fragments = provider.answer(
+        payload.question, [frag.text for frag in item.fragments]
+    )
+    citations = [frag for frag in item.fragments if frag.text in used_fragments]
+
+    add_activity(
+        doc_id,
+        ActivityItem(
+            type="question",
+            label="Question asked",
+            detail=payload.question,
+        ),
+    )
+
+    async def event_stream():
+        # Stream the answer word by word so the client sees incremental output.
+        words = answer_text.split()
+        for i, word in enumerate(words):
+            chunk = word if i == 0 else f" {word}"
+            yield f"data: {json.dumps({'type': 'delta', 'text': chunk})}\n\n"
+
+        # Send all citations in a single event after the answer is complete.
+        yield f"data: {json.dumps({'type': 'citations', 'citations': [c.model_dump() for c in citations]})}\n\n"
+
+        # Terminal event — client closes the reader on receipt.
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # disable nginx/proxy buffering
+        },
+    )
 
 
 @app.post("/documents/{doc_id}/share")

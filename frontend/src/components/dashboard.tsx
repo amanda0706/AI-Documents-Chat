@@ -10,6 +10,7 @@ import {
   retrieveDocumentContext,
   saveDocumentMetadata,
   shareDocument as shareDocumentRequest,
+  streamDocumentQuestion,
   updateDocumentStatus,
   uploadDocument as uploadDocumentRequest,
   uploadDocuments,
@@ -247,26 +248,75 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines, provider
     setBusyAction("question");
     setNotice(null);
     const askedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    // Append the user turn immediately so the history feels responsive.
     setMessages((current) => [...current, { role: "user", content: currentQuestion, timestamp: askedAt }]);
+
     if (!selected.id.startsWith("demo-")) {
+      const replyAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+      // Add an empty assistant placeholder that will fill in word-by-word.
+      setAnswer("");
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", content: "", citations: [], timestamp: replyAt },
+      ]);
+
+      const streamed = await streamDocumentQuestion(
+        selected.id,
+        currentQuestion,
+        // onDelta: append each word chunk to both the live preview and the history entry
+        (text) => {
+          setAnswer((prev) => prev + text);
+          setMessages((current) => {
+            const updated = [...current];
+            const last = { ...updated[updated.length - 1] };
+            last.content = (last.content ?? "") + text;
+            updated[updated.length - 1] = last;
+            return updated;
+          });
+        },
+        // onCitations: attach source fragments to the history entry once streaming ends
+        (streamCitations) => {
+          setCitations(streamCitations);
+          setMessages((current) => {
+            const updated = [...current];
+            const last = { ...updated[updated.length - 1] };
+            last.citations = streamCitations;
+            updated[updated.length - 1] = last;
+            return updated;
+          });
+        },
+      );
+
+      if (streamed) {
+        addLocalActivity(selected.id, { type: "question", label: "Question asked", detail: currentQuestion });
+        setQuestion("");
+        setBusyAction(null);
+        return;
+      }
+
+      // Streaming failed (network error / backend unavailable).
+      // Remove the empty placeholder and fall back to the non-streaming /ask endpoint.
+      setMessages((current) => current.slice(0, -1));
+      setAnswer("Zadaj pytanie o termin wypowiedzenia, płatności albo odpowiedzialność.");
+
       const payload = await askDocumentQuestion(selected.id, currentQuestion);
       if (payload) {
         setAnswer(payload.answer);
         setCitations(payload.citations ?? []);
         setMessages((current) => [
           ...current,
-          { role: "assistant", content: payload.answer, citations: payload.citations ?? [], timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
+          { role: "assistant", content: payload.answer, citations: payload.citations ?? [], timestamp: replyAt },
         ]);
-        addLocalActivity(selected.id, {
-          type: "question",
-          label: "Question asked",
-          detail: currentQuestion,
-        });
+        addLocalActivity(selected.id, { type: "question", label: "Question asked", detail: currentQuestion });
         setQuestion("");
         setBusyAction(null);
         return;
       }
     }
+
+    // Demo mode — keyword match against local fragment data (no backend call).
     const hit =
       selected.fragments.find((fragment) =>
         question
@@ -285,11 +335,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines, provider
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
-    addLocalActivity(selected.id, {
-      type: "question",
-      label: "Question asked",
-      detail: currentQuestion,
-    });
+    addLocalActivity(selected.id, { type: "question", label: "Question asked", detail: currentQuestion });
     setQuestion("");
     setBusyAction(null);
   }
@@ -1308,9 +1354,14 @@ function DocumentWorkspace(props: {
           </div>
           <textarea value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Ask about payment terms, termination, liability, renewal..." className="min-h-24 w-full rounded-2xl border border-line p-4 text-sm outline-none" />
           <button disabled={props.busyAction === "question"} onClick={props.askQuestion} className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white disabled:opacity-60">
-            {props.busyAction === "question" ? "Thinking..." : "Ask"}
+            {props.busyAction === "question" ? "Streaming…" : "Ask"}
           </button>
-          <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700"><MarkdownText content={props.answer} /></div>
+          <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+            <MarkdownText content={props.answer} />
+            {props.busyAction === "question" && props.answer !== "" && (
+              <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-slate-400" aria-hidden="true" />
+            )}
+          </div>
         </Panel>
         <Panel title="Conversation history">
           {props.messages.length === 0 ? (

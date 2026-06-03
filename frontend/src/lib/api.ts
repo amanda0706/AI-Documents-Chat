@@ -93,6 +93,67 @@ export async function askDocumentQuestion(documentId: string, question: string):
   );
 }
 
+/**
+ * Stream a document-grounded answer as Server-Sent Events.
+ *
+ * Event sequence from the backend:
+ *   delta     → { type: "delta",     text: string }
+ *   citations → { type: "citations", citations: DocumentItem["fragments"] }
+ *   done      → { type: "done" }
+ *
+ * Calls `onDelta` for each incremental text chunk and `onCitations` once
+ * all fragments are known.  Returns `true` when the stream completed
+ * successfully, `false` on network error or non-200 response (caller
+ * should fall back to the non-streaming /ask endpoint).
+ */
+export async function streamDocumentQuestion(
+  documentId: string,
+  question: string,
+  onDelta: (text: string) => void,
+  onCitations: (citations: DocumentItem["fragments"]) => void,
+): Promise<boolean> {
+  try {
+    const resp = await fetch(`${API_URL}/documents/${documentId}/ask/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+    if (!resp.ok || !resp.body) return false;
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE events are separated by double newlines; split and process complete lines
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? ""; // keep any incomplete line for the next chunk
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        try {
+          const event = JSON.parse(line.slice(6)) as
+            | { type: "delta"; text: string }
+            | { type: "citations"; citations: DocumentItem["fragments"] }
+            | { type: "done" };
+          if (event.type === "delta") onDelta(event.text);
+          else if (event.type === "citations") onCitations(event.citations);
+          // "done" needs no action — the while loop ends naturally
+        } catch {
+          // skip malformed SSE lines
+        }
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function uploadDocument(file: File, owner = ""): Promise<DocumentItem | null> {
   const formData = new FormData();
   formData.append("file", file);
