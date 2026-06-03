@@ -1,11 +1,84 @@
 MASTER SERVICES AGREEMENT
+[SYNTHETIC SAMPLE — NOT A REAL CONTRACT. SAFE FOR DEMO USE.]
+
+This Master Services Agreement ("Agreement") is entered into between Acme Solutions Ltd
+("Provider") and Globex Corp ("Customer") as of 1 January 2026.
+
+1. SCOPE OF SERVICES
+Provider agrees to deliver software development, consulting, and support services as
+described in Statements of Work ("SOW") issued under this Agreement. Each SOW shall
+specify deliverables, timelines, and applicable fees. Provider may subcontract portions
+of the work with prior written approval from Customer.
+
+2. TERM
+This Agreement commences on the Effective Date and continues for a period of two (2)
+years unless earlier terminated in accordance with Section 9. It will automatically renew
+for successive one-year terms unless either party provides written notice of non-renewal
+at least sixty (60) days before the end of the then-current term.
+
+3. FEES AND INVOICING
+Customer shall pay Provider the fees set out in the applicable SOW. Provider shall issue
+invoices on a monthly basis. All invoices are payable within sixty (60) days of the
+invoice date. Amounts not paid within sixty (60) days shall accrue interest at the rate
+of 1.5% per month on the outstanding balance.
 
 4. PAYMENT TERMS
-Customer shall pay all fees within sixty (60) days of the invoice date.
+Customer shall pay all fees within sixty (60) days of the invoice date. Provider reserves
+the right to suspend services if any invoice remains unpaid for more than thirty (30)
+days after becoming due, provided that Provider gives Customer ten (10) days written
+notice before such suspension.
+
+5. INTELLECTUAL PROPERTY
+All work product, inventions, and deliverables created by Provider exclusively for
+Customer under a SOW ("Custom Deliverables") shall, upon full payment, be assigned to
+Customer. All pre-existing intellectual property and general tools or methodologies
+developed independently by Provider remain the sole property of Provider. Provider
+grants Customer a non-exclusive, non-transferable licence to use Provider's background
+IP solely as embedded in the Custom Deliverables.
+
+6. CONFIDENTIALITY
+Each party ("Receiving Party") agrees to hold in strict confidence all Confidential
+Information disclosed by the other party ("Disclosing Party") and not to disclose it to
+any third party without prior written consent. Confidential Information excludes
+information that: (a) is or becomes publicly known through no breach of this Agreement;
+(b) was rightfully known to the Receiving Party before disclosure; or (c) is
+independently developed by the Receiving Party. This obligation survives termination of
+the Agreement for a period of five (5) years.
+
+7. DATA PROTECTION
+Each party shall comply with applicable data protection legislation. Customer is the
+data controller; Provider is the data processor in respect of any personal data
+processed on Customer's behalf. Provider shall implement appropriate technical and
+organisational measures to protect personal data and shall notify Customer of any
+personal data breach within seventy-two (72) hours of becoming aware of it.
+
+8. LIMITATION OF LIABILITY
+Neither party shall be liable for any indirect, incidental, special, consequential, or
+punitive damages arising out of or related to this Agreement, even if the other party
+has been advised of the possibility of such damages. Each party's total aggregate
+liability under this Agreement shall not exceed the fees paid or payable by Customer in
+the twelve (12) months immediately preceding the event giving rise to the claim.
 
 9. TERMINATION
-Either party may terminate this agreement for convenience by giving the other party ninety (90) days prior written notice.
+Either party may terminate this Agreement for convenience by giving the other party
+ninety (90) days prior written notice. Either party may terminate immediately upon
+written notice if the other party: (a) commits a material breach and fails to remedy it
+within thirty (30) days of receiving written notice of the breach; (b) becomes insolvent
+or makes an assignment for the benefit of creditors; or (c) ceases to carry on business.
 
-12. LIMITATION OF LIABILITY
-Neither party shall be liable for indirect, incidental, special, consequential, or punitive damages.
+10. AUTOMATIC RENEWAL
+This Agreement and each active SOW will automatically renew unless the non-renewing
+party provides written notice of its intent not to renew at least sixty (60) days before
+the expiry of the then-current term. Customer is responsible for tracking renewal dates.
 
+11. GOVERNING LAW
+This Agreement is governed by the laws of England and Wales. The parties submit to the
+exclusive jurisdiction of the courts of England and Wales for the resolution of any
+dispute arising under or in connection with this Agreement.
+
+12. GENERAL
+This Agreement constitutes the entire agreement between the parties in relation to its
+subject matter and supersedes all prior representations, negotiations, or arrangements.
+No variation to this Agreement is effective unless made in writing and signed by both
+parties. If any provision of this Agreement is found to be invalid or unenforceable, the
+remaining provisions shall continue in full force and effect.

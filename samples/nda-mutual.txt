@@ -1,0 +1,84 @@
+MUTUAL NON-DISCLOSURE AGREEMENT
+[SYNTHETIC SAMPLE — NOT A REAL CONTRACT. SAFE FOR DEMO USE.]
+
+This Mutual Non-Disclosure Agreement ("Agreement") is entered into between Acme
+Solutions Ltd ("Party A") and Contoso Research GmbH ("Party B") as of 1 March 2026.
+
+1. PURPOSE
+The parties intend to explore a potential commercial collaboration relating to
+AI-assisted document review technology ("Purpose"). In connection with this Purpose,
+each party may disclose to the other certain confidential and proprietary information.
+This Agreement governs the disclosure and use of that information.
+
+2. DEFINITION OF CONFIDENTIAL INFORMATION
+"Confidential Information" means any information disclosed by one party ("Disclosing
+Party") to the other ("Receiving Party"), whether orally, in writing, or in any other
+form, that is designated as confidential or that reasonably should be understood to be
+confidential given the nature of the information and the circumstances of disclosure.
+Confidential Information includes, without limitation, technical data, trade secrets,
+business plans, financial projections, product roadmaps, customer data, and personnel
+information.
+
+3. EXCLUSIONS
+The obligations in this Agreement do not apply to information that: (a) is or becomes
+publicly available other than through a breach of this Agreement; (b) was already known
+to the Receiving Party at the time of disclosure, as evidenced by written records;
+(c) is independently developed by the Receiving Party without reference to the
+Disclosing Party's Confidential Information; or (d) is required to be disclosed by
+applicable law, regulation, or court order, provided the Receiving Party gives the
+Disclosing Party reasonable prior written notice to allow it to seek a protective order.
+
+4. OBLIGATIONS OF RECEIVING PARTY
+Each Receiving Party agrees to: (a) hold all Confidential Information in strict
+confidence; (b) use Confidential Information solely for the Purpose; (c) not disclose
+Confidential Information to any third party without the prior written consent of the
+Disclosing Party; (d) limit internal disclosure to employees and contractors who have a
+need to know and who are bound by confidentiality obligations at least as protective as
+those in this Agreement; and (e) notify the Disclosing Party promptly upon discovering
+any unauthorised disclosure or use of Confidential Information.
+
+5. STANDARD OF CARE
+Each Receiving Party shall protect Confidential Information using at least the same
+degree of care it uses to protect its own confidential information of a similar nature,
+but no less than reasonable care.
+
+6. TERM AND DURATION OF OBLIGATIONS
+This Agreement commences on the date of last signature and continues for a period of
+two (2) years ("Term"). Notwithstanding expiry or earlier termination, each party's
+confidentiality obligations with respect to Confidential Information disclosed during
+the Term shall survive for a further period of three (3) years.
+
+7. RETURN OR DESTRUCTION OF INFORMATION
+Upon written request by the Disclosing Party, or upon termination of this Agreement,
+the Receiving Party shall promptly return or certifiably destroy all Confidential
+Information in its possession, including copies and derivatives, and shall provide
+written confirmation of such return or destruction within five (5) business days.
+
+8. NO LICENCE
+Nothing in this Agreement grants either party any intellectual property licence or any
+right to use the other party's trademarks, patents, or other intellectual property
+beyond what is strictly necessary for the Purpose.
+
+9. NO WARRANTY
+All Confidential Information is provided "as is." The Disclosing Party makes no
+representations or warranties, express or implied, as to the accuracy, completeness,
+or fitness for a particular purpose of any Confidential Information disclosed.
+
+10. LIMITATION OF LIABILITY
+Neither party shall be liable for any indirect, incidental, special, or consequential
+damages arising from or relating to this Agreement, except in the case of wilful
+misconduct or gross negligence. Each party's aggregate liability is limited to EUR
+50,000.
+
+11. GOVERNING LAW AND DISPUTE RESOLUTION
+This Agreement is governed by the laws of Germany without reference to its
+conflict-of-law provisions. Any dispute arising out of or in connection with this
+Agreement shall be finally settled by arbitration under the rules of the German
+Arbitration Institute (DIS), with the seat of arbitration in Berlin and proceedings
+conducted in English.
+
+12. GENERAL
+This Agreement constitutes the entire agreement between the parties on the subject of
+confidentiality and supersedes all prior oral or written agreements on the same subject.
+It may not be amended except by a written document signed by both parties. If any
+provision is found unenforceable, the remainder of the Agreement remains in effect.

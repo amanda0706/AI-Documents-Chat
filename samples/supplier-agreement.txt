@@ -1,11 +1,65 @@
 SUPPLIER AGREEMENT
+[SYNTHETIC SAMPLE — NOT A REAL CONTRACT. SAFE FOR DEMO USE.]
 
-4. PAYMENT TERMS
-Customer shall pay all fees within thirty (30) days of the invoice date.
+This Supplier Agreement ("Agreement") is entered into between Northwind Components Ltd
+("Supplier") and Globex Corp ("Buyer") as of 15 February 2026.
 
-9. TERMINATION
-Either party may terminate this agreement for convenience by giving the other party thirty (30) days prior written notice.
+1. SUPPLY OF GOODS AND SERVICES
+Supplier agrees to supply the goods and ancillary services described in each Purchase
+Order issued by Buyer under this Agreement. Supplier shall fulfil orders within the
+lead times stated in each Purchase Order. Supplier shall not sub-contract fulfilment
+without Buyer's prior written consent.
 
-12. LIMITATION OF LIABILITY
-The liability cap shall not apply to fraud, wilful misconduct, or breach of confidentiality.
+2. TERM
+This Agreement commences on the Effective Date and continues for one (1) year unless
+earlier terminated under Section 8. Either party may renew for a further year by
+providing written notice no fewer than thirty (30) days before expiry.
 
+3. PRICING AND PAYMENT
+Buyer shall pay Supplier the unit prices agreed in the applicable Purchase Order.
+Supplier shall issue invoices upon delivery. Payment is due within thirty (30) days
+of the invoice date. Invoices paid after thirty (30) days shall not accrue interest
+unless Supplier provides fourteen (14) days written notice of intent to charge.
+
+4. DELIVERY AND ACCEPTANCE
+All goods are delivered DDP (Delivered Duty Paid) to Buyer's nominated address. Buyer
+has ten (10) business days after delivery to inspect and reject non-conforming goods.
+Accepted goods may not subsequently be returned except for latent defects discovered
+within six (6) months of delivery.
+
+5. WARRANTIES
+Supplier warrants that all goods supplied are: (a) free from defects in materials and
+workmanship for a period of twelve (12) months from delivery; (b) compliant with all
+applicable laws and regulations; and (c) do not infringe any third-party intellectual
+property rights.
+
+6. CONFIDENTIALITY
+Each party shall keep confidential all proprietary information received from the other
+party and shall not disclose it to any third party without prior written consent.
+Confidential information does not include information that is publicly available or
+independently developed. This obligation continues for three (3) years after
+termination of this Agreement.
+
+7. LIABILITY
+Neither party excludes liability for death or personal injury caused by negligence, or
+for fraud or fraudulent misrepresentation. Subject to the foregoing, neither party is
+liable for indirect or consequential losses. Each party's aggregate liability is capped
+at the total fees paid under this Agreement in the six (6) months preceding the claim.
+The liability cap shall not apply to fraud, wilful misconduct, or breach of
+confidentiality obligations.
+
+8. TERMINATION
+Either party may terminate this Agreement by giving thirty (30) days written notice.
+Either party may terminate immediately if the other party commits a material breach
+that is not remedied within fourteen (14) days of written notice, or if the other
+party becomes insolvent.
+
+9. GOVERNING LAW
+This Agreement is governed by the laws of Scotland. Disputes shall be submitted first
+to senior management of both parties for good-faith resolution before any legal
+proceedings are commenced.
+
+10. GENERAL
+This Agreement supersedes all prior agreements between the parties on the same subject
+matter. Any amendment must be in writing and signed by authorised representatives of
+both parties.

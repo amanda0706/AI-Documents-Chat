@@ -322,18 +322,40 @@ Then open:
 
 - local demo: `http://127.0.0.1:5050`
 
+## Sample contracts
+
+The `samples/` directory contains three synthetic contracts. They are entirely fictional
+and safe to use in demos, CI, or local testing. No real or confidential data is included.
+
+| File | Type | Interesting signals |
+|---|---|---|
+| `master-services-agreement.txt` | MSA | Net-60 payment, 90-day termination notice, broad liability cap, auto-renewal clause → high risk score |
+| `supplier-agreement.txt` | Supplier agreement | Net-30 payment, liability cap with fraud/misconduct exceptions, 30-day termination → lower risk |
+| `nda-mutual.txt` | Mutual NDA | Confidentiality obligations, 3-year survival, arbitration clause, EUR 50k liability cap |
+
+Upload all three for the richest demo: risk comparison, version comparison, and grounded Q&A across different document types.
+
+> **Cloud AI note:** uploading these samples only sends text to Claude or OpenAI if you have
+> explicitly set `ANALYSIS_PROVIDER=claude` (or `openai`) in `backend/.env`. The default
+> `ANALYSIS_PROVIDER=local` keeps everything on-device.
+
 ## Quick demo path
 
-1. Start the backend and frontend, or use the lightweight local demo mode.
-2. Upload `samples/master-services-agreement.txt`.
-3. Upload `samples/supplier-agreement.txt`.
-4. Ask: `What are the payment terms?`
-5. Ask a follow-up question and inspect the conversation history with cited source passages.
-6. Add a reviewer comment and move the first contract into `In review`.
-7. Open the comparison view and compare both documents.
-8. Inspect the review queue, suggested edits, and supporting passages below the answer.
-9. Generate and download a contract review report.
-10. Archive a document when it leaves the local review queue.
+1. Start the backend and frontend (see **Local run** above).
+2. Sign in with any email address (local session mock — no real auth).
+3. Upload all three files from `samples/` — drag and drop or use the upload button.
+4. On the **Dashboard** view, inspect the risk queue and overall scores.
+5. Open the **Document** view for `master-services-agreement.txt`.
+6. Ask: `What are the payment terms?` — inspect the cited source passages.
+7. Ask a follow-up: `What happens if the agreement auto-renews?`
+8. Add a reviewer comment and move the contract to **In review**.
+9. Open the **Compare** view and compare the MSA against the Supplier Agreement.
+10. Switch to the Supplier Agreement and open **Suggestions** to see safer wording.
+11. Generate and download a markdown review report.
+12. Archive a document when it leaves the review queue.
+
+**Alternative:** click **Load demo data** on the empty-state screen to explore the UI
+immediately with pre-loaded synthetic documents — nothing is uploaded to the backend.
 
 ## What makes this portfolio-ready
 

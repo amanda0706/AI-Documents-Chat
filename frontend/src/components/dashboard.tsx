@@ -746,11 +746,14 @@ ${passageLines}`,
   if (!items.length) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-mist p-5">
-        <section className="max-w-xl rounded-[28px] bg-white p-8 text-center shadow-panel">
+        <section className="max-w-2xl rounded-[28px] bg-white p-8 shadow-panel">
           <h1 className="text-3xl font-semibold tracking-tight">Start with your first contract</h1>
           <p className="mt-4 leading-7 text-slate-600">
             Upload a PDF or TXT file to generate a summary, inspect risks, ask questions, and compare revisions.
+            Cloud AI is only called when you have explicitly set <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">ANALYSIS_PROVIDER=claude</code> in <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">backend/.env</code>.
           </p>
+
+          {/* Upload zone */}
           <div
             onDragOver={handleUploadDragOver}
             onDragLeave={handleUploadDragLeave}
@@ -774,19 +777,50 @@ ${passageLines}`,
               </div>
             )}
           </div>
-          <label className="mt-4 inline-block cursor-pointer rounded-2xl bg-accent px-5 py-3 font-medium text-white">
-            {uploadInProgress ? "Uploading..." : "Upload document"}
-            <input type="file" accept=".pdf,.txt" multiple className="hidden" onChange={(event) => uploadMany(event.target.files)} />
-          </label>
-          <button
-            onClick={() => {
-              setItems(demoDocuments);
-              setSelectedId(demoDocuments[0]?.id ?? "");
-            }}
-            className="ml-3 rounded-2xl border border-line px-5 py-3 font-medium"
-          >
-            Load demo data
-          </button>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <label className="cursor-pointer rounded-2xl bg-accent px-5 py-3 font-medium text-white">
+              {uploadInProgress ? "Uploading..." : "Upload document"}
+              <input type="file" accept=".pdf,.txt" multiple className="hidden" onChange={(event) => uploadMany(event.target.files)} />
+            </label>
+            <button
+              onClick={() => {
+                setItems(demoDocuments);
+                setSelectedId(demoDocuments[0]?.id ?? "");
+              }}
+              className="rounded-2xl bg-slate-900 px-5 py-3 font-medium text-white"
+            >
+              Load demo data
+            </button>
+          </div>
+
+          {/* Safe sample files guide */}
+          <div className="mt-6 rounded-2xl border border-line bg-slate-50 p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                Synthetic · safe for demo
+              </span>
+              <span className="text-xs text-slate-500">No real contracts. No data sent to cloud unless you choose.</span>
+            </div>
+            <p className="mb-3 text-sm font-medium text-slate-700">
+              Ready-to-upload sample contracts in <code className="rounded bg-white px-1 py-0.5 text-xs">samples/</code>:
+            </p>
+            <ul className="space-y-2 text-sm text-slate-600">
+              {[
+                ["master-services-agreement.txt", "MSA — net-60 payment, 90-day termination, liability cap, auto-renewal. High risk score."],
+                ["supplier-agreement.txt",        "Supplier agreement — net-30 payment, capped liability with exceptions, 30-day notice."],
+                ["nda-mutual.txt",                "Mutual NDA — confidentiality obligations, 3-year survival, governing law, arbitration."],
+              ].map(([file, desc]) => (
+                <li key={file} className="flex gap-2">
+                  <code className="mt-0.5 shrink-0 rounded bg-white px-1.5 py-0.5 text-xs text-slate-700">{file}</code>
+                  <span>{desc}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-slate-400">
+              Upload all three to try comparison, risk scoring, and grounded Q&A in one go.
+            </p>
+          </div>
         </section>
       </main>
     );
