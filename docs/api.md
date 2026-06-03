@@ -227,6 +227,117 @@ Request:
 
 Response includes an executive summary and categorized differences.
 
+## Embeddings and vector retrieval
+
+LuminaClause includes a RAG-ready vector retrieval layer.  Document fragments
+are mapped to dense float vectors and stored in ``data/embeddings.json``.
+Queries are embedded with the same function and the top-*k* fragments are
+returned by cosine similarity.
+
+**Current provider:** local deterministic hash-projection (128 dims, no API
+key required).  Swap the embedding function in ``embeddings.py`` for a cloud
+API (OpenAI ``text-embedding-3-small``, Cohere, etc.) or a local model
+(``sentence-transformers``) without changing these endpoints.  See
+``embeddings.py`` for the pgvector migration notes.
+
+### `POST /embeddings/reindex`
+
+Compute and store vector embeddings for document fragments.
+
+Request body:
+
+```json
+{ "doc_id": "<id>" }
+```
+
+Omit `doc_id` (or pass `null`) to reindex every document in the store.
+The operation is idempotent — existing records for the same fragment are
+overwritten.
+
+Response:
+
+```json
+{
+  "indexed_documents": 1,
+  "total_fragments": 14,
+  "provider": "local",
+  "dim": 128
+}
+```
+
+### `GET /documents/{id}/embeddings`
+
+Return embedding metadata for every indexed fragment of the document, sorted
+by page number.
+
+Query parameters:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `include_vectors` | `false` | Include raw float arrays in the response |
+
+Vectors are omitted by default to keep payloads small.  Add
+`?include_vectors=true` when you need the raw floats (e.g. for t-SNE /
+UMAP visualisation on the client).
+
+Returns `404` when no embeddings exist — run `POST /embeddings/reindex` first.
+
+Response (without vectors):
+
+```json
+[
+  {
+    "document_id": "...",
+    "fragment_id": "...-0",
+    "page": 1,
+    "text": "Payment terms are net sixty days...",
+    "provider": "local",
+    "dim": 128
+  }
+]
+```
+
+### `GET /documents/{id}/vector-search`
+
+Retrieve the top-*k* fragments most similar to a query by cosine similarity.
+
+Query parameters:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `query` | required | Natural-language search query |
+| `top_k` | `3` | Number of results (clamped to 1–8) |
+
+Returns `404` when no embeddings exist — run `POST /embeddings/reindex` first.
+Returns `400` when `query` is empty.
+
+This is the **RAG retrieval step**: concatenate the returned fragment texts as
+grounding context for a language model answer.
+
+Compared with `GET /documents/{id}/retrieval` (keyword overlap score), this
+endpoint uses dense vector similarity and scales naturally to semantic
+embeddings once the local function is replaced.
+
+Response:
+
+```json
+{
+  "query": "payment invoice",
+  "top_k": 3,
+  "provider": "local",
+  "dim": 128,
+  "results": [
+    {
+      "rank": 1,
+      "fragment_id": "...-0",
+      "page": 1,
+      "text": "Payment terms are net sixty days from invoice date.",
+      "score": 0.8213
+    }
+  ]
+}
+```
+
 ## AI provider configuration
 
 All analysis routes (`/upload`, `/ask`, `/compare`, `/documents/{id}/versions`) run through the `AnalysisProvider` interface. The active provider is selected by the `ANALYSIS_PROVIDER` environment variable.

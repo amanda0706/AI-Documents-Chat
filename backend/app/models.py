@@ -202,3 +202,78 @@ class ProviderStatus(BaseModel):
     provider: str
     model: str
     cloud_enabled: bool
+
+
+# ---------------------------------------------------------------------------
+# Embeddings / vector retrieval
+# ---------------------------------------------------------------------------
+
+class EmbeddingMeta(BaseModel):
+    """
+    Embedding record without the raw vector — safe to return in list responses.
+
+    The ``vector`` field is intentionally excluded here to keep payloads
+    small.  Use ``include_vectors=true`` on ``GET /documents/{id}/embeddings``
+    to receive the raw floats when needed (e.g. for client-side visualisation).
+
+    Migration note: in a production pgvector setup this record maps directly
+    to a row in the ``fragment_embeddings`` table::
+
+        CREATE TABLE fragment_embeddings (
+            fragment_id  TEXT PRIMARY KEY,
+            document_id  TEXT NOT NULL,
+            page         INT,
+            text         TEXT,
+            provider     TEXT,
+            dim          INT,
+            embedding    vector(1536)   -- or vector(128) for local demo
+        );
+    """
+
+    document_id: str
+    fragment_id: str
+    page: int
+    text: str
+    provider: str
+    dim: int
+    vector: list[float] | None = None
+    """Raw embedding floats. ``None`` unless ``include_vectors=true`` is passed."""
+
+
+class VectorSearchResult(BaseModel):
+    """One ranked fragment returned by a vector similarity search."""
+
+    rank: int
+    fragment_id: str
+    page: int
+    text: str
+    score: float
+
+
+class VectorSearchResponse(BaseModel):
+    """Full response from ``GET /documents/{id}/vector-search``."""
+
+    query: str
+    top_k: int
+    provider: str
+    dim: int
+    results: list[VectorSearchResult]
+
+
+class ReindexRequest(BaseModel):
+    """
+    Request body for ``POST /embeddings/reindex``.
+
+    Omit ``doc_id`` (or pass ``null``) to reindex every document in the store.
+    """
+
+    doc_id: str | None = None
+
+
+class ReindexResponse(BaseModel):
+    """Summary of a completed reindex operation."""
+
+    indexed_documents: int
+    total_fragments: int
+    provider: str
+    dim: int

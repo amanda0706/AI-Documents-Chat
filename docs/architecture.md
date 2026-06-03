@@ -6,12 +6,18 @@ Next.js frontend
       v
 FastAPI backend
       |
-      +--> local document store (JSON / filesystem)
+      +--> local document store   (JSON / filesystem)
+      |
+      +--> EmbeddingIndex         (data/embeddings.json)
+      |       |
+      |       +--> local_embed()  (hash-projection, 128 dims, no key)
+      |       +--> vector_search() (cosine similarity, top-k)
+      |
       +--> AnalysisProvider interface
               |
               +--> LocalProvider       (default, no key required)
-              +--> ClaudeProvider      (stub — set ANTHROPIC_API_KEY)
-              +--> OpenAIProvider      (stub — set OPENAI_API_KEY)
+              +--> ClaudeProvider      (set ANTHROPIC_API_KEY)
+              +--> OpenAIProvider      (adapter seam — set OPENAI_API_KEY)
 ```
 
 ## Current mode
@@ -39,12 +45,74 @@ Selecting a cloud provider without the matching key raises a clear `ValueError` 
 
 When `ANALYSIS_PROVIDER=claude` or `openai` is set, retrieved document fragments are sent to the selected third-party API. **Only enable a cloud provider if you have explicit consent from all relevant parties and have reviewed the provider's data-handling and retention terms.** Do not process real sensitive or confidential contracts through a cloud provider without that consent.
 
+## Vector retrieval layer
+
+``embeddings.py`` implements a RAG-ready retrieval layer that maps every
+document fragment to a dense float vector.
+
+### Current local embedding function
+
+``local_embed(text)`` uses the **hashing trick**:
+
+1. Tokenise the text into lowercase alphabetic words (≥ 3 characters).
+2. Hash each token with MD5; map to a bucket index (``hash mod 128``) and a
+   sign (derived from a higher bit).
+3. Accumulate signed counts per bucket.
+4. L2-normalise to a unit vector so the dot product equals cosine similarity.
+
+Properties: fully deterministic, zero external dependencies, 128 floats per
+fragment.  Not semantically meaningful at this scale — words that collide into
+the same bucket appear similar even when unrelated.
+
+### Migration to production embeddings
+
+Replace ``local_embed`` with a single function call:
+
+```python
+# OpenAI (1536-dim, paid API)
+response = client.embeddings.create(model="text-embedding-3-small", input=text)
+return response.data[0].embedding
+
+# sentence-transformers (local, GPU-capable, 384-dim)
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer("all-MiniLM-L6-v2")
+return model.encode(text).tolist()
+```
+
+No endpoint changes are required — only ``EMBED_DIM`` and ``local_embed`` in
+``embeddings.py`` need updating.
+
+### Migration to pgvector
+
+```sql
+-- Store vectors alongside fragment rows
+ALTER TABLE fragments
+    ADD COLUMN embedding vector(1536);   -- match your embedding dimension
+
+-- ANN index for fast nearest-neighbour search
+CREATE INDEX ON fragments
+    USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = 100);
+
+-- Nearest-neighbour retrieval query
+SELECT fragment_id, text,
+       1 - (embedding <=> $query_vec) AS score
+FROM   fragments
+WHERE  document_id = $doc_id
+ORDER  BY embedding <=> $query_vec
+LIMIT  $top_k;
+```
+
+The ``EmbeddingRecord`` dataclass fields map 1:1 to this table schema.  Swap
+``_save_raw`` / ``_load_raw`` in ``embeddings.py`` for an asyncpg/SQLAlchemy
+layer to complete the migration without touching the API endpoints.
+
 ## Future mode
 
 - PostgreSQL stores users, documents, chats, shares, and clause metadata.
-- pgvector stores embeddings.
+- pgvector stores embeddings (migration path documented above).
 - Object storage keeps the original files.
-- `OpenAIProvider` SDK calls wired (mirrors the existing `ClaudeProvider` pattern).
+- ``OpenAIProvider`` SDK calls wired (mirrors the existing ``ClaudeProvider`` pattern).
 
 ## Why this split matters
 

@@ -129,6 +129,23 @@ Never commit `backend/.env`. It is covered by `.gitignore:1` (`.env` rule).
 
 **Privacy rule:** when a cloud provider is active, document fragments are sent to a third-party API. Never enable a cloud provider for real sensitive contracts without explicit consent from all relevant parties and a review of the provider's data-handling terms.
 
+## Embeddings layer (implemented)
+
+`backend/app/embeddings.py` provides a RAG-ready vector retrieval layer:
+
+- `local_embed(text)` — deterministic hash-projection, 128-dim unit vector, no external deps.
+- `cosine_similarity(a, b)` — dot product of unit vectors.
+- `reindex_document(doc)` — embeds all fragments and persists to `data/embeddings.json`.
+- `vector_search(query, doc_id, top_k)` — top-k retrieval by cosine similarity.
+
+API endpoints added:
+- `POST /embeddings/reindex` — index one or all documents.
+- `GET /documents/{id}/embeddings` — list embedding metadata (vectors optional).
+- `GET /documents/{id}/vector-search` — semantic retrieval endpoint.
+
+Migration paths to production embeddings and pgvector are documented in
+`docs/architecture.md` and inline in `embeddings.py`.
+
 ## Current recommended next step
 
 Wire `OpenAIProvider` SDK calls to match the `ClaudeProvider` pattern:
@@ -145,8 +162,8 @@ Do not break local-first operation. Do not require any API key for tests or CI.
 The next serious production upgrades are:
 
 - OpenAI provider SDK calls (mirrors ClaudeProvider — seam is already in place),
+- swap `local_embed` for real sentence embeddings (OpenAI, sentence-transformers) — no endpoint changes needed,
 - real auth/workspaces,
-- PostgreSQL persistence,
-- pgvector embeddings,
+- PostgreSQL + pgvector (migration SQL in `docs/architecture.md`),
 - object storage,
 - deployment once a free/acceptable hosting path is chosen.

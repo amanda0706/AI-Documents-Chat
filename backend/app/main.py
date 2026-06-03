@@ -22,16 +22,28 @@ from .models import (
     ComparisonResponse,
     DashboardStats,
     DeadlineItem,
+    EmbeddingMeta,
     MetadataRequest,
     MetricsResponse,
     ProviderStatus,
     QuestionRequest,
     QuestionResponse,
+    ReindexRequest,
+    ReindexResponse,
     ReportResponse,
     RetrievalResult,
     ReviewStatusRequest,
     SearchResult,
     ShareRequest,
+    VectorSearchResponse,
+    VectorSearchResult,
+)
+from .embeddings import (
+    EMBED_DIM,
+    delete_document_embeddings,
+    get_document_embeddings,
+    reindex_document,
+    vector_search,
 )
 from .deadlines import build_deadlines
 from .store import (
@@ -134,6 +146,7 @@ def remove_document(doc_id: str):
     deleted = delete_document(doc_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Document not found")
+    delete_document_embeddings(doc_id)
     return {"status": "deleted", "document_id": doc_id}
 
 
@@ -339,4 +352,115 @@ def compare(payload: CompareRequest):
         ),
     )
     return comparison
+
+
+# ---------------------------------------------------------------------------
+# Embeddings / vector retrieval
+# ---------------------------------------------------------------------------
+
+@app.post("/embeddings/reindex", response_model=ReindexResponse)
+def reindex_embeddings(payload: ReindexRequest):
+    """
+    Compute and store vector embeddings for document fragments.
+
+    Pass ``{"doc_id": "<id>"}`` to reindex a single document, or omit
+    ``doc_id`` (or pass ``null``) to reindex every document in the store.
+
+    Embeddings are stored in ``data/embeddings.json`` keyed by fragment ID.
+    Existing records for the same fragment are overwritten (idempotent).
+
+    Current provider: **local** — deterministic hash-projection (128 dims),
+    no API key required.  Swap ``local_embed`` in ``embeddings.py`` for a
+    real embeddings API to upgrade without changing these endpoints.
+    """
+    if payload.doc_id:
+        doc = get_document(payload.doc_id)
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        docs = [doc]
+    else:
+        docs = list_documents()
+
+    total_fragments = 0
+    for doc in docs:
+        records = reindex_document(doc)
+        total_fragments += len(records)
+
+    return ReindexResponse(
+        indexed_documents=len(docs),
+        total_fragments=total_fragments,
+        provider="local",
+        dim=EMBED_DIM,
+    )
+
+
+@app.get("/documents/{doc_id}/embeddings", response_model=list[EmbeddingMeta], response_model_exclude_none=True)
+def document_embeddings(doc_id: str, include_vectors: bool = False):
+    """
+    Return embedding metadata for every indexed fragment of the document.
+
+    Vectors are omitted by default (128 floats × many fragments can be
+    large).  Add ``?include_vectors=true`` to receive the raw float arrays,
+    e.g. for client-side t-SNE / UMAP visualisation.
+
+    Returns ``404`` when no embeddings exist — run
+    ``POST /embeddings/reindex`` first.
+    """
+    item = get_document(doc_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Document not found")
+    records = get_document_embeddings(doc_id, include_vectors=include_vectors)
+    if not records:
+        raise HTTPException(
+            status_code=404,
+            detail="No embeddings found for this document — run POST /embeddings/reindex first",
+        )
+    return records
+
+
+@app.get("/documents/{doc_id}/vector-search", response_model=VectorSearchResponse)
+def vector_search_document(doc_id: str, query: str, top_k: int = 3):
+    """
+    Retrieve the top-*k* fragments most similar to *query* by cosine
+    similarity over stored embeddings.
+
+    This is the RAG retrieval step: feed the returned ``context`` field
+    (assembled from the top-k texts) as grounding to a language model.
+
+    ``top_k`` is clamped to [1, 8].  Returns ``404`` when no embeddings
+    exist — run ``POST /embeddings/reindex`` first.
+
+    Compared with ``GET /documents/{id}/retrieval`` (keyword overlap),
+    this endpoint uses dense vector similarity and will improve
+    significantly once ``local_embed`` is replaced with a real sentence
+    embedding model.
+    """
+    item = get_document(doc_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if not query.strip():
+        raise HTTPException(status_code=400, detail="query must not be empty")
+    safe_k = max(1, min(top_k, 8))
+    results = vector_search(query, doc_id, top_k=safe_k)
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No embeddings found for this document — run POST /embeddings/reindex first",
+        )
+    return VectorSearchResponse(
+        query=query,
+        top_k=safe_k,
+        provider="local",
+        dim=EMBED_DIM,
+        results=[
+            VectorSearchResult(
+                rank=i + 1,
+                fragment_id=meta["fragment_id"],
+                page=meta["page"],
+                text=meta["text"],
+                score=round(score, 4),
+            )
+            for i, (meta, score) in enumerate(results)
+        ],
+    )
 

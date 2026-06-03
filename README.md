@@ -104,7 +104,8 @@ Current local engine:
 - keyword-based retrieval,
 - rules-based risk detection,
 - deterministic suggestions,
-- local JSON persistence.
+- local JSON persistence,
+- embeddings-ready vector retrieval layer (hash-projection, 128 dims, no key required).
 
 Optional local OCR:
 
@@ -159,8 +160,8 @@ The app reads the provider choice from environment variables, so switching intel
 
 Future provider layer:
 
-- embeddings for semantic retrieval,
-- PostgreSQL + pgvector,
+- swap ``local_embed`` for real sentence embeddings (OpenAI, sentence-transformers) without endpoint changes,
+- PostgreSQL + pgvector (migration SQL documented in ``docs/architecture.md``),
 - object storage,
 - hosted deployment.
 
@@ -421,6 +422,9 @@ The local API applies production-minded guardrails before analysis starts:
 - `POST /documents/{id}/status`
 - `GET /documents/{id}/report`
 - `POST /compare`
+- `POST /embeddings/reindex`
+- `GET /documents/{id}/embeddings`
+- `GET /documents/{id}/vector-search`
 
 ## Demo materials
 
@@ -432,9 +436,11 @@ The `samples/` directory contains two small contract examples that are useful wh
 ## Roadmap toward production
 
 1. ~~Add cloud AI provider adapter seam (Claude/OpenAI)~~ ✓ done
-2. Wire real SDK calls into `ClaudeProvider` / `OpenAIProvider` stubs
-3. Add PostgreSQL + pgvector
-4. Add real authentication and permissions
-5. Store files in S3 / Blob Storage
-6. Add audit log, comments, and workspace roles
-7. Deploy frontend + backend
+2. ~~Wire real SDK calls into `ClaudeProvider`~~ ✓ done
+3. ~~Add embeddings-ready vector retrieval layer~~ ✓ done
+4. Wire `OpenAIProvider` SDK calls (mirrors `ClaudeProvider`)
+5. Add PostgreSQL + pgvector
+6. Add real authentication and permissions
+7. Store files in S3 / Blob Storage
+8. Add audit log, comments, and workspace roles
+9. Deploy frontend + backend
