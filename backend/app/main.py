@@ -24,6 +24,7 @@ from .models import (
     DeadlineItem,
     MetadataRequest,
     MetricsResponse,
+    ProviderStatus,
     QuestionRequest,
     QuestionResponse,
     ReportResponse,
@@ -67,6 +68,22 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/provider", response_model=ProviderStatus)
+def provider_status() -> ProviderStatus:
+    """Return the active AI provider name and model.
+
+    Never exposes API keys or secret values — only the provider name,
+    the model identifier, and whether a cloud provider is active.
+    """
+    name = provider.name
+    model: str = getattr(provider, "model", "local")
+    return ProviderStatus(
+        provider=name,
+        model=model if name != "local" else "local",
+        cloud_enabled=name != "local",
+    )
 
 
 @app.get("/dashboard", response_model=DashboardStats)

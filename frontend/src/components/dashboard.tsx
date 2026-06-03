@@ -21,6 +21,7 @@ import type {
   DeadlineItem,
   DocumentItem,
   MetadataDraft,
+  ProviderStatus,
   ReportResult,
   RetrievalResult,
   ReviewStatus,
@@ -33,6 +34,7 @@ type DashboardProps = {
   stats: DashboardStats;
   demoDocuments: DocumentItem[];
   deadlines: DeadlineItem[];
+  providerStatus: ProviderStatus;
 };
 
 type View = "overview" | "document" | "compare" | "suggestions";
@@ -75,7 +77,7 @@ const riskMarkers: Record<string, string[]> = {
   confidentiality: ["confidentiality", "confidential information", "non-disclosure"],
 };
 
-export function Dashboard({ documents, stats, demoDocuments, deadlines }: DashboardProps) {
+export function Dashboard({ documents, stats, demoDocuments, deadlines, providerStatus }: DashboardProps) {
   const [email, setEmail] = useState("");
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -801,7 +803,9 @@ ${passageLines}`,
       )}
       <div className="mx-auto grid max-w-[1440px] grid-cols-[250px_minmax(0,1fr)] gap-5">
         <aside className="rounded-[28px] bg-white p-5 shadow-panel">
-          <div className="mb-8 text-2xl font-semibold tracking-tight">LuminaClause</div>
+          <div className="mb-3 text-2xl font-semibold tracking-tight">LuminaClause</div>
+          <AiProviderBadge status={providerStatus} />
+          <div className="mb-5" />
           <div className="mb-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{email}</div>
           <button onClick={signOut} className="mb-5 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium text-slate-600">Sign out</button>
           <div
@@ -1542,5 +1546,34 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
       <p className="mb-3 text-sm text-slate-400">{title}</p>
       {children}
     </section>
+  );
+}
+
+const providerBadgeStyles: Record<string, string> = {
+  local:        "bg-slate-100 text-slate-600",
+  claude:       "bg-violet-100 text-violet-700",
+  openai:       "bg-emerald-100 text-emerald-700",
+  unavailable:  "bg-amber-50 text-amber-600",
+};
+
+const providerLabels: Record<string, string> = {
+  local:       "AI mode: Local",
+  claude:      "AI mode: Claude",
+  openai:      "AI mode: OpenAI",
+  unavailable: "AI mode: unavailable",
+};
+
+function AiProviderBadge({ status }: { status: ProviderStatus }) {
+  const key = status.provider in providerBadgeStyles ? status.provider : "unavailable";
+  const label = providerLabels[key] ?? "AI mode: unavailable";
+  const style = providerBadgeStyles[key];
+  return (
+    <div
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${style}`}
+      title={status.cloud_enabled ? `Model: ${status.model}` : "Running fully on-device"}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${status.cloud_enabled ? "bg-violet-500" : "bg-slate-400"}`} />
+      {label}
+    </div>
   );
 }

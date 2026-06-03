@@ -127,3 +127,9 @@ export type DeadlineItem = {
   due_date: string;
   days_remaining: number;
 };
+
+export type ProviderStatus = {
+  provider: "local" | "claude" | "openai" | "unavailable";
+  model: string;
+  cloud_enabled: boolean;
+};

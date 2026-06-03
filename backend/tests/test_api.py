@@ -179,6 +179,30 @@ def test_retrieval_endpoint_returns_ranked_context(client: TestClient) -> None:
     assert "Source page" in payload["context"]
 
 
+def test_provider_endpoint_returns_safe_status(client: TestClient) -> None:
+    response = client.get("/provider")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] in {"local", "claude", "openai"}
+    assert "model" in payload
+    assert isinstance(payload["cloud_enabled"], bool)
+    # Keys must never appear in the response
+    assert "api_key" not in payload
+    assert "ANTHROPIC_API_KEY" not in str(payload)
+    assert "OPENAI_API_KEY" not in str(payload)
+
+
+def test_provider_endpoint_local_mode_reports_not_cloud(client: TestClient) -> None:
+    # force_local_provider fixture is autouse — provider is always LocalProvider here
+    response = client.get("/provider")
+
+    payload = response.json()
+    assert payload["provider"] == "local"
+    assert payload["model"] == "local"
+    assert payload["cloud_enabled"] is False
+
+
 def test_metrics_endpoint_reports_operational_snapshot(client: TestClient) -> None:
     document = upload_contract(client, "metrics-contract.txt")
     client.post(f"/documents/{document['id']}/comments", json={"author": "qa@example.com", "body": "Looks risky."})

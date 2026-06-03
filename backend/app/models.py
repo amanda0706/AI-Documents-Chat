@@ -196,3 +196,9 @@ class MetricsResponse(BaseModel):
     comments_count: int
     activity_events: int
     latest_upload_filename: str = ""
+
+
+class ProviderStatus(BaseModel):
+    provider: str
+    model: str
+    cloud_enabled: bool

@@ -4,6 +4,7 @@ import type {
   DeadlineItem,
   DocumentItem,
   MetadataDraft,
+  ProviderStatus,
   QuestionResult,
   ReportResult,
   RetrievalResult,
@@ -23,6 +24,14 @@ async function requestJson<T>(request: () => Promise<Response>, fallback: T): Pr
   } catch {
     return fallback;
   }
+}
+
+export async function fetchProviderStatus(): Promise<ProviderStatus> {
+  return requestJson(() => fetch(`${API_URL}/provider`, { cache: "no-store" }), {
+    provider: "unavailable",
+    model: "unavailable",
+    cloud_enabled: false,
+  });
 }
 
 export async function fetchDocuments(): Promise<DocumentItem[]> {
