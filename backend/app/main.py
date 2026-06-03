@@ -181,7 +181,12 @@ async def read_upload_pages(file: UploadFile, safe_filename: str) -> tuple[list[
         page_texts = [page.strip() for page in extraction.page_texts if page.strip()]
         extraction_method = extraction.method
     else:
-        page_texts = [temp_path.read_text(encoding="utf-8").strip()]
+        raw_text = temp_path.read_text(encoding="utf-8").strip()
+        # Split TXT files into paragraph-level fragments (blank-line delimited).
+        # Each section with at least 40 characters becomes its own fragment,
+        # giving the local similarity search and Claude meaningful units to rank.
+        paragraphs = [p.strip() for p in raw_text.split("\n\n") if len(p.strip()) >= 40]
+        page_texts = paragraphs if paragraphs else [raw_text]
         extraction_method = "text"
     if not any(page_texts):
         raise HTTPException(status_code=400, detail="No readable text found in uploaded document")
