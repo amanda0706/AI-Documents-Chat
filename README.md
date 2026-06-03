@@ -55,6 +55,8 @@ Useful portfolio materials:
 
 - [Architecture notes](docs/architecture.md)
 - [API reference](docs/api.md)
+- [Database schema plan](docs/database-schema.md)
+- [PostgreSQL + pgvector DDL](db/schema.sql)
 - [Local MVP release checklist](docs/release-checklist.md)
 - [Portfolio summary](docs/portfolio-summary.md)
 - [Deployment guide](docs/deployment.md)
@@ -438,9 +440,9 @@ The `samples/` directory contains two small contract examples that are useful wh
 1. ~~Add cloud AI provider adapter seam (Claude/OpenAI)~~ ✓ done
 2. ~~Wire real SDK calls into `ClaudeProvider`~~ ✓ done
 3. ~~Add embeddings-ready vector retrieval layer~~ ✓ done
-4. Wire `OpenAIProvider` SDK calls (mirrors `ClaudeProvider`)
-5. Add PostgreSQL + pgvector
-6. Add real authentication and permissions
-7. Store files in S3 / Blob Storage
-8. Add audit log, comments, and workspace roles
+4. ~~Document PostgreSQL + pgvector schema and migration path~~ ✓ done
+5. Wire `OpenAIProvider` SDK calls (mirrors `ClaudeProvider`)
+6. Add PostgreSQL + pgvector (schema in [`db/schema.sql`](db/schema.sql))
+7. Add real authentication and permissions
+8. Store files in S3 / Blob Storage
 9. Deploy frontend + backend

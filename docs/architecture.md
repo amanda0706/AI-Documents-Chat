@@ -107,10 +107,26 @@ The ``EmbeddingRecord`` dataclass fields map 1:1 to this table schema.  Swap
 ``_save_raw`` / ``_load_raw`` in ``embeddings.py`` for an asyncpg/SQLAlchemy
 layer to complete the migration without touching the API endpoints.
 
+## Storage interface
+
+``store.py`` is the only module that touches the filesystem.  Every API route
+in ``main.py`` calls its public functions and nothing else from the persistence
+layer.  The full function signatures are documented in
+[docs/database-schema.md](database-schema.md#storage-interface--migration-contract).
+
+Replacing JSON storage with PostgreSQL requires only:
+
+1. Implement ``store_pg.py`` using the same function signatures.
+2. Change ``main.py`` to ``from .store_pg import ...`` instead of ``.store``.
+3. Run the existing 121-test suite — all tests pass unchanged because they
+   isolate the store via monkeypatch, not the module name.
+
 ## Future mode
 
 - PostgreSQL stores users, documents, chats, shares, and clause metadata.
-- pgvector stores embeddings (migration path documented above).
+  See the full schema plan in [docs/database-schema.md](database-schema.md)
+  and the runnable DDL in [db/schema.sql](../db/schema.sql).
+- pgvector stores embeddings (migration path documented above and in the schema).
 - Object storage keeps the original files.
 - ``OpenAIProvider`` SDK calls wired (mirrors the existing ``ClaudeProvider`` pattern).
 
