@@ -7,6 +7,7 @@ node_modules/
 .npm-cache/
 frontend/.env.local
 backend/data/uploads/
+backend/data/users.json
 server.out.log
 server.err.log
 msa.pdf

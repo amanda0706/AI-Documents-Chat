@@ -263,43 +263,66 @@ export async function deleteDocument(documentId: string): Promise<boolean> {
 
 /**
  * Register a new local user.
- * Returns the auth response (token + user) on success, or null on failure.
- * Falls back gracefully: callers should treat null as "backend unavailable"
- * and continue with the local email-only session mock.
+ *
+ * Returns the auth response on success.
+ * Returns **null** when the backend is unreachable (network error) — callers
+ * should treat null as "backend unavailable" and fall back to the local
+ * email-only session mock.
+ * **Throws** an `Error` with a human-readable message for credential/
+ * validation errors (409 duplicate email, 422 short password) so the caller
+ * can show a specific error notice instead of silently falling back.
  */
 export async function authRegister(
   email: string,
   password: string,
 ): Promise<AuthResponse | null> {
-  return requestJson(
-    () => fetch(`${API_URL}/auth/register`, {
+  try {
+    const response = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
-    }),
-    null,
-  );
+    });
+    if (response.ok) return response.json() as Promise<AuthResponse>;
+    if (response.status === 409) throw new Error("That email is already registered. Try signing in instead.");
+    if (response.status === 422) throw new Error("Password must be at least 6 characters.");
+    // 5xx or unexpected status — treat as backend unavailable
+    return null;
+  } catch (err) {
+    // TypeError = network failure (fetch throws) → backend unavailable
+    if (err instanceof TypeError) return null;
+    throw err; // credential / validation error — re-raise for the caller
+  }
 }
 
 /**
  * Log in an existing local user.
- * Returns the auth response on success, or null on failure.
- * HTTP 401 (wrong credentials) also returns null — callers can distinguish
- * network failure from wrong credentials by checking the response status
- * separately if needed.
+ *
+ * Returns the auth response on success.
+ * Returns **null** when the backend is unreachable (network error) — callers
+ * should treat null as "backend unavailable" and fall back to the local
+ * email-only session mock.
+ * **Throws** an `Error` with a human-readable message on HTTP 401 (wrong
+ * credentials) so the caller can show a specific error notice instead of
+ * silently falling back.
  */
 export async function authLogin(
   email: string,
   password: string,
 ): Promise<AuthResponse | null> {
-  return requestJson(
-    () => fetch(`${API_URL}/auth/login`, {
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
-    }),
-    null,
-  );
+    });
+    if (response.ok) return response.json() as Promise<AuthResponse>;
+    if (response.status === 401) throw new Error("Incorrect email or password.");
+    // 5xx or unexpected status — treat as backend unavailable
+    return null;
+  } catch (err) {
+    if (err instanceof TypeError) return null;
+    throw err;
+  }
 }
 
 /**

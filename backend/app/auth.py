@@ -17,8 +17,8 @@ Timing-attack-safe comparison via ``hmac.compare_digest``.
 Security notes for local demo mode
 ------------------------------------
 - AUTH_SECRET falls back to a hardcoded placeholder when the env var is
-  absent.  The placeholder is printed in the startup log so it is obvious.
-  **Never use the default in production.**
+  absent.  A ``UserWarning`` is raised (once per process) so the gap is
+  visible in the startup log.  **Never use the default in production.**
 - User records live in ``data/users.json`` — appropriate for a local demo;
   replace with the PostgreSQL ``users`` table before handling real data.
 - Token expiry defaults to 24 h (configurable via TOKEN_EXPIRY_SECONDS).
@@ -39,6 +39,7 @@ import hmac
 import json
 import os
 import time
+import warnings
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -50,8 +51,21 @@ TOKEN_EXPIRY_SECONDS: int = 60 * 60 * 24  # 24 hours
 
 
 def _secret() -> str:
-    """Return AUTH_SECRET from environment, or the dev placeholder."""
-    return os.getenv("AUTH_SECRET", "").strip() or _DEV_SECRET
+    """Return AUTH_SECRET from environment, or the dev placeholder.
+
+    A ``UserWarning`` is emitted (once per process) when the placeholder is
+    used so that the gap is visible in the startup log.
+    """
+    val = os.getenv("AUTH_SECRET", "").strip()
+    if not val:
+        warnings.warn(
+            "AUTH_SECRET env var is not set — using the hardcoded dev placeholder. "
+            "Set AUTH_SECRET to a 256-bit random string before deploying.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return _DEV_SECRET
+    return val
 
 
 # ---------------------------------------------------------------------------

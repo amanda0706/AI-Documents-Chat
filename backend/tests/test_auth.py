@@ -316,3 +316,25 @@ class TestNoSecretLeakage:
         monkeypatch.setenv("AUTH_SECRET", secret)
         body = _register(client)
         assert secret not in body["access_token"]
+
+
+# ---------------------------------------------------------------------------
+# Dev-secret startup warning
+# ---------------------------------------------------------------------------
+
+
+class TestDevSecretWarning:
+    def test_warning_emitted_when_auth_secret_unset(self, monkeypatch: pytest.MonkeyPatch):
+        """A UserWarning must be emitted when AUTH_SECRET env var is absent."""
+        import warnings as _warnings
+
+        from backend.app.auth import _secret
+
+        monkeypatch.delenv("AUTH_SECRET", raising=False)
+        # Use catch_warnings + simplefilter("always") to override Python's
+        # per-location deduplication so the warning fires even if _secret()
+        # was already called earlier in the test session.
+        with _warnings.catch_warnings():
+            _warnings.simplefilter("always")
+            with pytest.warns(UserWarning, match="AUTH_SECRET env var is not set"):
+                _secret()

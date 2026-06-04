@@ -169,10 +169,22 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines, provider
       return;
     }
 
-    // Attempt backend auth (register or login). Gracefully falls back to the
-    // local email-only session when the backend is unavailable or returns an error.
+    // authRegister / authLogin return null on network error (backend down) and
+    // throw an Error with a human-readable message on credential/validation
+    // errors (401, 409, 422).  Only the null / network-error path falls back to
+    // the local email-only demo session.
     const authFn = authMode === "register" ? authRegister : authLogin;
-    const result = await authFn(normalizedEmail, password).catch(() => null);
+    let result: Awaited<ReturnType<typeof authFn>> = null;
+    try {
+      result = await authFn(normalizedEmail, password);
+    } catch (err) {
+      // Credential or validation error from the backend — show it; do NOT log in.
+      setNotice({
+        tone: "error",
+        message: err instanceof Error ? err.message : "Authentication failed.",
+      });
+      return;
+    }
 
     if (result) {
       // Backend auth succeeded — store the JWT and restore from the user profile.
@@ -186,7 +198,7 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines, provider
         message: authMode === "register" ? "Account created." : "Signed in.",
       });
     } else {
-      // Backend unavailable or credentials rejected — fall back to local mock.
+      // null = network error — backend is unavailable; fall back to local demo session.
       window.localStorage.setItem("luminaclause:userEmail", normalizedEmail);
       setEmail(normalizedEmail);
       setIsLoggedIn(true);
