@@ -205,6 +205,40 @@ class ProviderStatus(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+
+class RegisterRequest(BaseModel):
+    """Body for POST /auth/register."""
+
+    email: str = Field(..., min_length=3, description="User email address")
+    password: str = Field(..., min_length=6, description="Password (min 6 chars)")
+
+
+class LoginRequest(BaseModel):
+    """Body for POST /auth/login."""
+
+    email: str
+    password: str
+
+
+class UserPublic(BaseModel):
+    """Safe subset of a user record — never includes password_hash or salt."""
+
+    id: str
+    email: str
+    created_at: str
+
+
+class AuthResponse(BaseModel):
+    """Returned by /auth/register and /auth/login on success."""
+
+    access_token: str
+    token_type: str = "bearer"
+    user: UserPublic
+
+
+# ---------------------------------------------------------------------------
 # Embeddings / vector retrieval
 # ---------------------------------------------------------------------------
 

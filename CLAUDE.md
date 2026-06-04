@@ -33,7 +33,8 @@ Already implemented:
 - risk detection and scoring
 - suggestions and missing clause detection
 - grounded Q&A with citations
-- local semantic retrieval endpoint
+- streaming answers (SSE)
+- local semantic retrieval endpoint (embeddings-ready, 128-dim hash-projection)
 - chat history
 - metadata/deadline workflow
 - comments/share/review status
@@ -44,9 +45,10 @@ Already implemented:
 - `/health` and `/metrics`
 - Swagger/OpenAPI docs
 - Docker Compose
-- backend tests
+- backend tests (157 passing)
 - frontend build workflow
-- API docs, architecture docs, release checklist, portfolio summary
+- API docs, architecture docs, database schema plan, release checklist, portfolio summary
+- **JWT-ready local auth** (PBKDF2-SHA256 passwords, HS256 JWTs, timing-safe, stdlib-only)
 
 ## How to run locally on Windows
 
@@ -145,6 +147,39 @@ API endpoints added:
 
 Migration paths to production embeddings and pgvector are documented in
 `docs/architecture.md` and inline in `embeddings.py`.
+
+## JWT auth layer (implemented)
+
+`backend/app/auth.py` — stdlib-only JWT + PBKDF2 password hashing (no new pip deps):
+
+- `create_token(user_id, email)` — HS256 JWT, 24-hour expiry, signed with `AUTH_SECRET` env var.
+- `decode_token(token)` — validates signature via `hmac.compare_digest`, checks `exp`.
+- `hash_password(password)` → `(hash_hex, salt_hex)` — PBKDF2-SHA256, 100 k iterations, 32-byte random salt.
+- `verify_password(password, stored_hash, salt_hex)` — timing-safe via `hmac.compare_digest`.
+
+`backend/app/auth_store.py` — JSON user store at `data/users.json`:
+
+- `register_user(email, password)` — case-normalises email, raises `ValueError` on duplicate.
+- `authenticate_user(email, password)` — timing-safe: always runs `verify_password` even for unknown emails.
+- `get_user_by_id(user_id)` — used by `GET /auth/me`.
+- `_public(record)` — strips `password_hash` and `salt` from every response.
+
+API endpoints added to `main.py`:
+
+- `POST /auth/register` — 409 on duplicate email, 422 if password < 6 chars.
+- `POST /auth/login` — 401 for both wrong password and unknown email (no enumeration).
+- `GET /auth/me` — parses `Authorization: Bearer <token>`, returns `UserPublic` or 401.
+
+Frontend (`dashboard.tsx`):
+
+- Page-load `useEffect` validates stored JWT via `GET /auth/me`; clears expired/tampered tokens.
+- `completeAuth()` calls `authRegister`/`authLogin`, stores JWT in `luminaclause:token`.
+- Falls back to local email-only session if backend is unavailable.
+- Password input added to auth form with Enter key handler.
+
+Tests: `backend/tests/test_auth.py` — 36 tests covering register, login, `/auth/me`, secret leakage.  Full suite: **157 passing**.
+
+`AUTH_SECRET` env var must be set in production to a 256-bit random string. Dev placeholder is used when absent but logs a warning path in architecture docs.
 
 ## Current recommended next step
 

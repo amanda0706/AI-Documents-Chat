@@ -1,4 +1,5 @@
 import type {
+  AuthResponse,
   ComparisonResult,
   DashboardStats,
   DeadlineItem,
@@ -9,6 +10,7 @@ import type {
   ReportResult,
   RetrievalResult,
   ReviewStatus,
+  UserPublic,
 } from "./types";
 
 const API_URL =
@@ -253,4 +255,64 @@ export async function deleteDocument(documentId: string): Promise<boolean> {
     }),
     null,
   ).then((result) => Boolean(result));
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+/**
+ * Register a new local user.
+ * Returns the auth response (token + user) on success, or null on failure.
+ * Falls back gracefully: callers should treat null as "backend unavailable"
+ * and continue with the local email-only session mock.
+ */
+export async function authRegister(
+  email: string,
+  password: string,
+): Promise<AuthResponse | null> {
+  return requestJson(
+    () => fetch(`${API_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    }),
+    null,
+  );
+}
+
+/**
+ * Log in an existing local user.
+ * Returns the auth response on success, or null on failure.
+ * HTTP 401 (wrong credentials) also returns null — callers can distinguish
+ * network failure from wrong credentials by checking the response status
+ * separately if needed.
+ */
+export async function authLogin(
+  email: string,
+  password: string,
+): Promise<AuthResponse | null> {
+  return requestJson(
+    () => fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    }),
+    null,
+  );
+}
+
+/**
+ * Validate a stored JWT and return the current user profile.
+ * Returns null when the token is expired, tampered, or the backend is down.
+ * Use on page load to restore a previous session gracefully.
+ */
+export async function authMe(token: string): Promise<UserPublic | null> {
+  return requestJson(
+    () => fetch(`${API_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }),
+    null,
+  );
 }

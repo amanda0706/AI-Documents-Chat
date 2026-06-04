@@ -133,3 +133,19 @@ export type ProviderStatus = {
   model: string;
   cloud_enabled: boolean;
 };
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+export type UserPublic = {
+  id: string;
+  email: string;
+  created_at: string;
+};
+
+export type AuthResponse = {
+  access_token: string;
+  token_type: "bearer";
+  user: UserPublic;
+};

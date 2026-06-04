@@ -304,15 +304,17 @@ Open:
 
 ### Local auth mode
 
-LuminaClause includes a lightweight local auth simulation for portfolio review:
+LuminaClause includes a JWT-ready local auth layer backed by real cryptography:
 
-- email-based login/register UI,
-- browser-local session persistence,
-- uploaded documents tagged with the current workspace owner,
-- sign-out flow,
-- clear migration seam for Clerk, Supabase Auth, or JWT later.
+- `POST /auth/register` — PBKDF2-SHA256 (100 k iterations) password hashing, issues a signed JWT.
+- `POST /auth/login` — credential verification, timing-safe via `hmac.compare_digest`.
+- `GET /auth/me` — validates Bearer token on every page load; clears expired/tampered tokens.
+- Tokens are HS256 JWTs signed with `AUTH_SECRET` (env var); 24-hour expiry.
+- User store: `data/users.json` (migration target: PostgreSQL `users` table).
+- Frontend stores the JWT in `localStorage` and falls back to the local email-only session when the backend is unavailable, so the demo always works.
+- No external pip packages required — stdlib-only (`hmac`, `hashlib`, `base64`).
 
-This is intentionally not a production auth provider; it demonstrates the product boundary before cloud identity is added.
+**Migration to production auth:** set `AUTH_SECRET` to a 256-bit random string, swap `auth_store.py` for a PostgreSQL-backed version, add HTTPS, and optionally replace the entire layer with Clerk, Supabase Auth, or Auth0.
 
 
 If package installation is blocked on a given machine, there is also a lightweight local demo mode that reuses the same analysis logic but runs on libraries already available in the environment:
@@ -376,7 +378,7 @@ immediately with pre-loaded synthetic documents — nothing is uploaded to the b
 
 Current local checks:
 
-- Backend test suite: `46 passed`
+- Backend test suite: `157 passed`
 - Frontend production build: `next build` passes
 - GitHub Actions: backend tests + frontend build on push and pull request
 - Docker Compose stack: frontend + FastAPI backend with persistent backend volume
@@ -427,6 +429,9 @@ The local API applies production-minded guardrails before analysis starts:
 - `POST /embeddings/reindex`
 - `GET /documents/{id}/embeddings`
 - `GET /documents/{id}/vector-search`
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
 
 ## Demo materials
 
@@ -441,8 +446,8 @@ The `samples/` directory contains two small contract examples that are useful wh
 2. ~~Wire real SDK calls into `ClaudeProvider`~~ ✓ done
 3. ~~Add embeddings-ready vector retrieval layer~~ ✓ done
 4. ~~Document PostgreSQL + pgvector schema and migration path~~ ✓ done
-5. Wire `OpenAIProvider` SDK calls (mirrors `ClaudeProvider`)
-6. Add PostgreSQL + pgvector (schema in [`db/schema.sql`](db/schema.sql))
-7. Add real authentication and permissions
+5. ~~Add JWT-ready local auth (PBKDF2, HS256, timing-safe)~~ ✓ done
+6. Wire `OpenAIProvider` SDK calls (mirrors `ClaudeProvider`)
+7. Add PostgreSQL + pgvector (schema in [`db/schema.sql`](db/schema.sql))
 8. Store files in S3 / Blob Storage
 9. Deploy frontend + backend

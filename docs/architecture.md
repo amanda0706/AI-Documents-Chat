@@ -20,6 +20,40 @@ FastAPI backend
               +--> OpenAIProvider      (adapter seam — set OPENAI_API_KEY)
 ```
 
+## Auth layer
+
+```text
+POST /auth/register   — PBKDF2-SHA256 hash + store user → issue JWT
+POST /auth/login      — verify credentials → issue JWT
+GET  /auth/me         — validate Bearer token → return user profile
+```
+
+**Current implementation:** stdlib-only — no extra pip packages.
+
+| Concern         | Implementation                                              |
+|-----------------|-------------------------------------------------------------|
+| Password hashing| PBKDF2-SHA256, 100 000 iterations, 32-byte random salt      |
+| Token signing   | HMAC-SHA256 (HS256 JWT), RFC 7519-compatible                |
+| Secret          | `AUTH_SECRET` env var; dev placeholder when unset           |
+| User store      | `data/users.json` — migration target: `users` table in PG  |
+| Token expiry    | 24 hours                                                    |
+| Timing safety   | `hmac.compare_digest` for password and signature checks     |
+
+**Frontend behaviour:** on submit the login/register form calls the backend.
+If the backend returns a valid token it is stored in `localStorage` and
+validated on every page load via `GET /auth/me`.  If the backend is
+unavailable the form falls back to the existing local email-only session
+so the demo always works.
+
+**Migration path to production auth:**
+
+1. Set `AUTH_SECRET` to a 256-bit random string in the deployment env.
+2. Swap `auth_store.py` for `auth_store_pg.py` (PostgreSQL `users` table).
+3. Add HTTPS — JWTs in `Authorization` headers are plaintext over HTTP.
+4. Optionally replace the whole auth layer with Clerk, Supabase Auth, or
+   Auth0; the frontend already reads `luminaclause:token` from `localStorage`
+   so only the token-issuance side needs to change.
+
 ## Current mode
 
 - Documents are stored locally.

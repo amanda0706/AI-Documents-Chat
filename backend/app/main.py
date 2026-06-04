@@ -5,7 +5,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -18,6 +18,7 @@ from .analyzer import similarity_score
 from .extraction import extract_pdf_pages
 from .models import (
     ActivityItem,
+    AuthResponse,
     CommentItem,
     CommentRequest,
     CompareRequest,
@@ -25,6 +26,7 @@ from .models import (
     DashboardStats,
     DeadlineItem,
     EmbeddingMeta,
+    LoginRequest,
     MetadataRequest,
     MetricsResponse,
     ProviderStatus,
@@ -32,14 +34,18 @@ from .models import (
     QuestionResponse,
     ReindexRequest,
     ReindexResponse,
+    RegisterRequest,
     ReportResponse,
     RetrievalResult,
     ReviewStatusRequest,
     SearchResult,
     ShareRequest,
+    UserPublic,
     VectorSearchResponse,
     VectorSearchResult,
 )
+from .auth import create_token, decode_token
+from .auth_store import authenticate_user, get_user_by_id, register_user
 from .embeddings import (
     EMBED_DIM,
     delete_document_embeddings,
@@ -532,4 +538,74 @@ def vector_search_document(doc_id: str, query: str, top_k: int = 3):
             for i, (meta, score) in enumerate(results)
         ],
     )
+
+
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+
+
+@app.post("/auth/register", response_model=AuthResponse)
+def auth_register(payload: RegisterRequest):
+    """
+    Register a new local user and return a signed JWT.
+
+    Passwords are hashed with PBKDF2-SHA256 (100 000 iterations, 32-byte
+    random salt) before storage.  The raw password and hash are never
+    returned in any response.
+
+    Returns **409** when the email is already registered.
+
+    Migration note: swap ``auth_store.register_user`` for a call that
+    INSERTs into the PostgreSQL ``users`` table — no endpoint changes needed.
+    """
+    try:
+        user = register_user(payload.email, payload.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    token = create_token(user["id"], user["email"])
+    return AuthResponse(access_token=token, user=UserPublic(**user))
+
+
+@app.post("/auth/login", response_model=AuthResponse)
+def auth_login(payload: LoginRequest):
+    """
+    Verify credentials and return a signed JWT.
+
+    Always returns **401** for both wrong password *and* unknown email so
+    that the response does not leak whether an email is registered.
+    """
+    user = authenticate_user(payload.email, payload.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    token = create_token(user["id"], user["email"])
+    return AuthResponse(access_token=token, user=UserPublic(**user))
+
+
+@app.get("/auth/me", response_model=UserPublic)
+def auth_me(authorization: str = Header(default="")):
+    """
+    Return the authenticated user's public profile.
+
+    Expects an ``Authorization: Bearer <token>`` header.
+    Returns **401** for missing, malformed, expired, or tampered tokens.
+
+    Use this on page load to validate a stored JWT before showing the
+    authenticated dashboard — fall back to the local email mock if this
+    endpoint returns non-200.
+    """
+    if not authorization.lower().startswith("bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Missing Authorization header — expected: Bearer <token>",
+        )
+    token = authorization[7:].strip()
+    try:
+        claims = decode_token(token)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    user = get_user_by_id(claims["user_id"])
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return UserPublic(**user)
 

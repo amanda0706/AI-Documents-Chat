@@ -4,6 +4,9 @@ import { type DragEvent, useEffect, useMemo, useState } from "react";
 import {
   addDocumentComment,
   askDocumentQuestion,
+  authLogin,
+  authMe,
+  authRegister,
   compareDocuments,
   deleteDocument,
   fetchReport,
@@ -80,6 +83,7 @@ const riskMarkers: Record<string, string[]> = {
 
 export function Dashboard({ documents, stats, demoDocuments, deadlines, providerStatus }: DashboardProps) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [items, setItems] = useState(documents);
@@ -113,10 +117,26 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines, provider
   const [isDraggingUpload, setIsDraggingUpload] = useState(false);
 
   useEffect(() => {
-    const savedEmail = window.localStorage.getItem("luminaclause:userEmail");
-    if (savedEmail) {
-      setEmail(savedEmail);
-      setIsLoggedIn(true);
+    // On load: try to restore session from a stored JWT first.
+    // If the JWT is valid, /auth/me returns the user profile.
+    // If the backend is unavailable or the token is expired, fall back
+    // to the local email-only session (stored separately in localStorage).
+    const storedToken = window.localStorage.getItem("luminaclause:token");
+    if (storedToken) {
+      authMe(storedToken).then((user) => {
+        if (user) {
+          setEmail(user.email);
+          setIsLoggedIn(true);
+        } else {
+          // Token invalid/expired — clear it and check for legacy email session
+          window.localStorage.removeItem("luminaclause:token");
+          const savedEmail = window.localStorage.getItem("luminaclause:userEmail");
+          if (savedEmail) { setEmail(savedEmail); setIsLoggedIn(true); }
+        }
+      });
+    } else {
+      const savedEmail = window.localStorage.getItem("luminaclause:userEmail");
+      if (savedEmail) { setEmail(savedEmail); setIsLoggedIn(true); }
     }
   }, []);
 
@@ -142,22 +162,48 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines, provider
     approved_documents: scopedItems.filter((document) => document.review_status === "approved").length,
   }), [scopedItems, stats]);
 
-  function completeAuth() {
+  async function completeAuth() {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail.includes("@")) {
       setNotice({ tone: "error", message: "Enter a valid email address to continue." });
       return;
     }
-    window.localStorage.setItem("luminaclause:userEmail", normalizedEmail);
-    setEmail(normalizedEmail);
-    setIsLoggedIn(true);
-    setNotice({ tone: "success", message: authMode === "register" ? "Local account created." : "Signed in locally." });
+
+    // Attempt backend auth (register or login). Gracefully falls back to the
+    // local email-only session when the backend is unavailable or returns an error.
+    const authFn = authMode === "register" ? authRegister : authLogin;
+    const result = await authFn(normalizedEmail, password).catch(() => null);
+
+    if (result) {
+      // Backend auth succeeded — store the JWT and restore from the user profile.
+      window.localStorage.setItem("luminaclause:token", result.access_token);
+      window.localStorage.setItem("luminaclause:userEmail", result.user.email);
+      setEmail(result.user.email);
+      setIsLoggedIn(true);
+      setPassword("");
+      setNotice({
+        tone: "success",
+        message: authMode === "register" ? "Account created." : "Signed in.",
+      });
+    } else {
+      // Backend unavailable or credentials rejected — fall back to local mock.
+      window.localStorage.setItem("luminaclause:userEmail", normalizedEmail);
+      setEmail(normalizedEmail);
+      setIsLoggedIn(true);
+      setPassword("");
+      setNotice({
+        tone: "success",
+        message: authMode === "register" ? "Local workspace created." : "Signed in locally.",
+      });
+    }
   }
 
   function signOut() {
+    window.localStorage.removeItem("luminaclause:token");
     window.localStorage.removeItem("luminaclause:userEmail");
     setIsLoggedIn(false);
     setEmail("");
+    setPassword("");
     setMessages([]);
     setCitations([]);
     setAnswer("Ask a question to generate a grounded answer with source passages.");
@@ -773,15 +819,30 @@ ${passageLines}`,
               <input
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && completeAuth()}
                 placeholder="anna@firma.pl"
+                type="email"
+                autoComplete="email"
                 className="mt-5 w-full rounded-2xl border border-line px-4 py-3 outline-none"
+              />
+              <input
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && completeAuth()}
+                placeholder="Password (min 6 chars)"
+                type="password"
+                autoComplete={authMode === "register" ? "new-password" : "current-password"}
+                className="mt-2 w-full rounded-2xl border border-line px-4 py-3 outline-none"
               />
               <button
                 onClick={completeAuth}
                 className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 font-medium text-white"
               >
-                {authMode === "register" ? "Create local workspace" : "Continue to dashboard"}
+                {authMode === "register" ? "Create workspace" : "Continue to dashboard"}
               </button>
+              <p className="mt-3 text-center text-xs text-slate-400">
+                Local demo — credentials stored on this device only.
+              </p>
             </section>
           </div>
         </section>
