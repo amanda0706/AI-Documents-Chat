@@ -8,6 +8,9 @@ node_modules/
 frontend/.env.local
 backend/data/uploads/
 backend/data/users.json
+# PostgreSQL local data (if using a bind-mount instead of a named Docker volume)
+pgdata/
+db/pgdata/
 server.out.log
 server.err.log
 msa.pdf

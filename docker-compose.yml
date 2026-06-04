@@ -1,9 +1,59 @@
 services:
+
+  # ---------------------------------------------------------------------------
+  # Database — PostgreSQL 16 + pgvector
+  # ---------------------------------------------------------------------------
+  # Image: pgvector/pgvector — official image maintained by the pgvector project.
+  # https://hub.docker.com/r/pgvector/pgvector
+  #
+  # ⚠  LOCAL DEVELOPMENT ONLY.  The default credentials below are safe for a
+  # local machine but must NEVER be used in a shared or production environment.
+  # Override the password:  DB_PASSWORD=<strong-secret> docker compose up
+  #
+  # The backend currently uses JSON persistence (store.py) and does not connect
+  # to this database yet.  The service starts alongside the stack so the schema
+  # is always available for inspection and future wiring.
+  #
+  # Migration note: when store_pg.py is implemented, uncomment DATABASE_URL in
+  # the backend service below and add:
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  # ---------------------------------------------------------------------------
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: luminaclause
+      POSTGRES_USER: luminaclause
+      # Development default — override with DB_PASSWORD env var before deploying.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-luminaclause_dev}
+    ports:
+      # Bound to 127.0.0.1 so the database port is never exposed beyond localhost.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # schema.sql is mounted read-only and applied automatically on the very
+      # first start when db-data is still empty (Docker initdb behaviour).
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U luminaclause -d luminaclause"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Backend — FastAPI
+  # ---------------------------------------------------------------------------
   backend:
     build:
       context: ./backend
     environment:
       ANALYSIS_PROVIDER: local
+      # Uncomment DATABASE_URL (and add db to depends_on above) when the backend
+      # is wired to PostgreSQL.  Leave commented to use JSON persistence.
+      # DATABASE_URL: postgresql://luminaclause:${DB_PASSWORD:-luminaclause_dev}@db:5432/luminaclause
     ports:
       - "8000:8000"
     volumes:
@@ -13,7 +63,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
 
+  # ---------------------------------------------------------------------------
+  # Frontend — Next.js
+  # ---------------------------------------------------------------------------
   frontend:
     build:
       context: ./frontend
@@ -28,5 +82,9 @@ services:
       backend:
         condition: service_healthy
 
+# ---------------------------------------------------------------------------
+# Volumes
+# ---------------------------------------------------------------------------
 volumes:
-  backend-data:
+  backend-data:   # FastAPI JSON store and uploaded files
+  db-data:        # PostgreSQL data — persisted across container restarts

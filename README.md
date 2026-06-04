@@ -57,6 +57,7 @@ Useful portfolio materials:
 - [API reference](docs/api.md)
 - [Database schema plan](docs/database-schema.md)
 - [PostgreSQL + pgvector DDL](db/schema.sql)
+- [Local PostgreSQL runbook](docs/local-postgres.md)
 - [Local MVP release checklist](docs/release-checklist.md)
 - [Portfolio summary](docs/portfolio-summary.md)
 - [Deployment guide](docs/deployment.md)
@@ -233,7 +234,8 @@ See the full [deployment guide](docs/deployment.md).
 
 ## Docker Compose
 
-Run the full stack in production-like containers:
+Run the full stack — frontend, backend **and** PostgreSQL + pgvector — in
+production-like containers:
 
 ```powershell
 docker compose up --build
@@ -245,6 +247,29 @@ Then open:
 - backend docs: `http://localhost:8000/docs`
 
 The frontend proxies `/api/*` to the backend container through `INTERNAL_API_URL`, so the browser talks to one frontend origin while the server-side rewrite reaches FastAPI internally. Backend data is stored in the `backend-data` Docker volume.
+
+The `db` service (`pgvector/pgvector:pg16`) starts alongside the stack and
+applies `db/schema.sql` automatically on first run.  The backend continues to
+use JSON persistence — the database is available for schema exploration and
+future wiring without changing any product behaviour.
+
+```powershell
+# Override the dev-only DB password
+$env:DB_PASSWORD="my-secret"; docker compose up --build
+
+# Check database health
+docker compose ps db
+docker compose exec db pg_isready -U luminaclause -d luminaclause
+
+# Interactive psql session
+docker compose exec db psql -U luminaclause -d luminaclause
+
+# Stop (data preserved) / stop and wipe database
+docker compose down
+docker compose down -v
+```
+
+Full PostgreSQL runbook: [`docs/local-postgres.md`](docs/local-postgres.md)
 
 ## Local run
 
@@ -447,7 +472,8 @@ The `samples/` directory contains two small contract examples that are useful wh
 3. ~~Add embeddings-ready vector retrieval layer~~ ✓ done
 4. ~~Document PostgreSQL + pgvector schema and migration path~~ ✓ done
 5. ~~Add JWT-ready local auth (PBKDF2, HS256, timing-safe)~~ ✓ done
-6. Wire `OpenAIProvider` SDK calls (mirrors `ClaudeProvider`)
-7. Add PostgreSQL + pgvector (schema in [`db/schema.sql`](db/schema.sql))
-8. Store files in S3 / Blob Storage
-9. Deploy frontend + backend
+6. ~~Add optional local PostgreSQL + pgvector runtime via Docker Compose~~ ✓ done
+7. Wire `OpenAIProvider` SDK calls (mirrors `ClaudeProvider`)
+8. Wire backend to PostgreSQL — implement `store_pg.py` (schema in [`db/schema.sql`](db/schema.sql))
+9. Store files in S3 / Blob Storage
+10. Deploy frontend + backend
