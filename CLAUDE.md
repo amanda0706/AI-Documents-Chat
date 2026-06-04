@@ -45,10 +45,11 @@ Already implemented:
 - `/health` and `/metrics`
 - Swagger/OpenAPI docs
 - Docker Compose
-- backend tests (157 passing)
+- backend tests (200 passing)
 - frontend build workflow
 - API docs, architecture docs, database schema plan, release checklist, portfolio summary
 - **JWT-ready local auth** (PBKDF2-SHA256 passwords, HS256 JWTs, timing-safe, stdlib-only)
+- **document repository abstraction** (`repository.py` — `DocumentRepository` Protocol, `JsonDocumentRepository`, `PostgresDocumentRepository` placeholder, `STORAGE_BACKEND` env var)
 
 ## How to run locally on Windows
 
@@ -177,9 +178,31 @@ Frontend (`dashboard.tsx`):
 - Falls back to local email-only session if backend is unavailable.
 - Password input added to auth form with Enter key handler.
 
-Tests: `backend/tests/test_auth.py` — 36 tests covering register, login, `/auth/me`, secret leakage.  Full suite: **157 passing**.
+Tests: `backend/tests/test_auth.py` — 36 tests covering register, login, `/auth/me`, secret leakage.  Full suite: **200 passing**.
 
 `AUTH_SECRET` env var must be set in production to a 256-bit random string. Dev placeholder is used when absent but logs a warning path in architecture docs.
+
+## Document repository abstraction (implemented)
+
+`backend/app/repository.py` — PEP 544 structural Protocol + two implementations:
+
+- `DocumentRepository` — `@runtime_checkable` Protocol covering all 11 document persistence operations.
+- `JsonDocumentRepository` — delegates every method to `store.*` at call time; monkeypatching `store.INDEX_FILE` in tests works unchanged.
+- `PostgresDocumentRepository` — placeholder; raises `NotImplementedError` at construction (fail-fast at startup, not mid-request).
+- `get_repository()` — factory driven by `STORAGE_BACKEND` env var (`json` default; `postgres` raises `ValueError`).
+
+`main.py` changes:
+- All document store function imports removed; `UPLOADS_DIR` kept as direct import (temp file handling during upload is not a repository concern).
+- `repo = get_repository()` added at module level, parallel to `provider = get_provider()`.
+- Every route calls `repo.*` instead of bare `store.*` functions.
+
+Tests: `backend/tests/test_repository.py` — 26 tests covering factory selection, protocol conformance, and full CRUD round-trip.
+
+Migration to PostgreSQL (when ready):
+1. Implement `store_pg.py` with the same function signatures as `store.py`.
+2. Implement `PostgresDocumentRepository` methods (remove `__init__` guard; delegate to `store_pg`).
+3. Set `STORAGE_BACKEND=postgres`.
+4. Run existing tests — no changes required.
 
 ## Current recommended next step
 

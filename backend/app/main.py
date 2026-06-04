@@ -54,26 +54,20 @@ from .embeddings import (
     vector_search,
 )
 from .deadlines import build_deadlines
-from .store import (
-    UPLOADS_DIR,
-    add_activity,
-    add_comment,
-    create_document,
-    delete_document,
-    create_document_version,
-    get_document,
-    list_document_versions,
-    list_documents,
-    share_document,
-    update_review_status,
-    update_metadata,
-)
+# UPLOADS_DIR is needed for temp file handling during upload; all other
+# document persistence goes through repo (see get_repository() below).
+from .store import UPLOADS_DIR
+from .repository import get_repository
 from .providers import get_provider
 from .services import build_dashboard_stats, build_report, compare_contracts
 
 
 app = FastAPI(title="LuminaClause API")
 provider = get_provider()
+# Active document repository — driven by STORAGE_BACKEND env var.
+# Default: JsonDocumentRepository (data/documents.json).
+# Override: STORAGE_BACKEND=postgres (raises ValueError until implemented).
+repo = get_repository()
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 ALLOWED_UPLOAD_SUFFIXES = {".pdf", ".txt"}
 app.add_middleware(
@@ -108,12 +102,12 @@ def provider_status() -> ProviderStatus:
 
 @app.get("/dashboard", response_model=DashboardStats)
 def dashboard():
-    return build_dashboard_stats(list_documents())
+    return build_dashboard_stats(repo.list_documents())
 
 
 @app.get("/metrics", response_model=MetricsResponse)
 def metrics():
-    documents = list_documents()
+    documents = repo.list_documents()
     stats = build_dashboard_stats(documents)
     latest_upload = ""
     if documents:
@@ -131,19 +125,20 @@ def metrics():
         latest_upload_filename=latest_upload,
     )
 
+
 @app.get("/deadlines", response_model=list[DeadlineItem])
 def deadlines():
-    return build_deadlines(list_documents())
+    return build_deadlines(repo.list_documents())
 
 
 @app.get("/documents")
 def documents():
-    return list_documents()
+    return repo.list_documents()
 
 
 @app.get("/documents/{doc_id}")
 def document(doc_id: str):
-    item = get_document(doc_id)
+    item = repo.get_document(doc_id)
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
     return item
@@ -151,7 +146,7 @@ def document(doc_id: str):
 
 @app.delete("/documents/{doc_id}")
 def remove_document(doc_id: str):
-    deleted = delete_document(doc_id)
+    deleted = repo.delete_document(doc_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Document not found")
     delete_document_embeddings(doc_id)
@@ -173,7 +168,10 @@ async def process_upload(file: UploadFile, owner: str = ""):
     page_texts, extraction_method = await read_upload_pages(file, original_filename)
     all_text = "\n".join(page_texts)
     summary = provider.summarize_document(original_filename, all_text)
-    return create_document(original_filename, page_texts, summary, extraction_method=extraction_method, owner=owner)
+    return repo.create_document(
+        original_filename, page_texts, summary,
+        extraction_method=extraction_method, owner=owner,
+    )
 
 
 def sanitize_upload_filename(filename: str) -> str:
@@ -216,13 +214,16 @@ async def read_upload_pages(file: UploadFile, safe_filename: str) -> tuple[list[
 
 @app.post("/documents/{doc_id}/versions")
 async def upload_document_version(doc_id: str, file: UploadFile = File(...)):
-    if not get_document(doc_id):
+    if not repo.get_document(doc_id):
         raise HTTPException(status_code=404, detail="Document not found")
     original_filename = sanitize_upload_filename(file.filename or "document.txt")
     page_texts, extraction_method = await read_upload_pages(file, original_filename)
     all_text = "\n".join(page_texts)
     summary = provider.summarize_document(original_filename, all_text)
-    created = create_document_version(doc_id, original_filename, page_texts, summary, extraction_method=extraction_method)
+    created = repo.create_document_version(
+        doc_id, original_filename, page_texts, summary,
+        extraction_method=extraction_method,
+    )
     if not created:
         raise HTTPException(status_code=404, detail="Document not found")
     return created
@@ -230,7 +231,7 @@ async def upload_document_version(doc_id: str, file: UploadFile = File(...)):
 
 @app.get("/documents/{doc_id}/versions")
 def document_versions(doc_id: str):
-    versions = list_document_versions(doc_id)
+    versions = repo.list_document_versions(doc_id)
     if not versions:
         raise HTTPException(status_code=404, detail="Document not found")
     return versions
@@ -238,7 +239,7 @@ def document_versions(doc_id: str):
 
 @app.get("/documents/{doc_id}/search")
 def search_document(doc_id: str, query: str):
-    item = get_document(doc_id)
+    item = repo.get_document(doc_id)
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
     results = [
@@ -250,7 +251,7 @@ def search_document(doc_id: str, query: str):
 
 @app.get("/documents/{doc_id}/retrieval", response_model=RetrievalResult)
 def retrieve_document_context(doc_id: str, query: str, top_k: int = 3):
-    item = get_document(doc_id)
+    item = repo.get_document(doc_id)
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
     safe_top_k = max(1, min(top_k, 8))
@@ -267,7 +268,7 @@ def retrieve_document_context(doc_id: str, query: str, top_k: int = 3):
         f"Source page {match.fragment.page}: {match.fragment.text}"
         for match in matches
     )
-    add_activity(
+    repo.add_activity(
         doc_id,
         ActivityItem(
             type="retrieval",
@@ -280,12 +281,12 @@ def retrieve_document_context(doc_id: str, query: str, top_k: int = 3):
 
 @app.post("/documents/{doc_id}/ask", response_model=QuestionResponse)
 def ask_document(doc_id: str, payload: QuestionRequest):
-    item = get_document(doc_id)
+    item = repo.get_document(doc_id)
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
     answer, relevant = provider.answer(payload.question, [fragment.text for fragment in item.fragments])
     citations = [fragment for fragment in item.fragments if fragment.text in relevant]
-    add_activity(
+    repo.add_activity(
         doc_id,
         ActivityItem(
             type="question",
@@ -320,7 +321,7 @@ async def stream_ask_document(doc_id: str, payload: QuestionRequest):
     Falls back gracefully: the non-streaming ``POST /documents/{id}/ask``
     endpoint remains fully functional alongside this one.
     """
-    item = get_document(doc_id)
+    item = repo.get_document(doc_id)
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
 
@@ -331,7 +332,7 @@ async def stream_ask_document(doc_id: str, payload: QuestionRequest):
     )
     citations = [frag for frag in item.fragments if frag.text in used_fragments]
 
-    add_activity(
+    repo.add_activity(
         doc_id,
         ActivityItem(
             type="question",
@@ -365,7 +366,7 @@ async def stream_ask_document(doc_id: str, payload: QuestionRequest):
 
 @app.post("/documents/{doc_id}/share")
 def share(doc_id: str, payload: ShareRequest):
-    updated = share_document(doc_id, payload.email)
+    updated = repo.share_document(doc_id, payload.email)
     if not updated:
         raise HTTPException(status_code=404, detail="Document not found")
     return updated
@@ -373,7 +374,7 @@ def share(doc_id: str, payload: ShareRequest):
 
 @app.post("/documents/{doc_id}/comments")
 def comment(doc_id: str, payload: CommentRequest):
-    updated = add_comment(doc_id, CommentItem(author=payload.author, body=payload.body))
+    updated = repo.add_comment(doc_id, CommentItem(author=payload.author, body=payload.body))
     if not updated:
         raise HTTPException(status_code=404, detail="Document not found")
     return updated
@@ -381,7 +382,7 @@ def comment(doc_id: str, payload: CommentRequest):
 
 @app.post("/documents/{doc_id}/status")
 def update_status(doc_id: str, payload: ReviewStatusRequest):
-    updated = update_review_status(doc_id, payload.status)
+    updated = repo.update_review_status(doc_id, payload.status)
     if not updated:
         raise HTTPException(status_code=404, detail="Document not found")
     return updated
@@ -389,7 +390,7 @@ def update_status(doc_id: str, payload: ReviewStatusRequest):
 
 @app.post("/documents/{doc_id}/metadata")
 def update_document_metadata(doc_id: str, payload: MetadataRequest):
-    updated = update_metadata(
+    updated = repo.update_metadata(
         doc_id,
         owner=payload.owner,
         counterparty=payload.counterparty,
@@ -405,20 +406,21 @@ def update_document_metadata(doc_id: str, payload: MetadataRequest):
 
 @app.get("/documents/{doc_id}/report", response_model=ReportResponse)
 def document_report(doc_id: str):
-    item = get_document(doc_id)
+    item = repo.get_document(doc_id)
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
     return build_report(item)
 
+
 @app.post("/compare", response_model=ComparisonResponse)
 def compare(payload: CompareRequest):
-    left = get_document(payload.left_id)
-    right = get_document(payload.right_id)
+    left = repo.get_document(payload.left_id)
+    right = repo.get_document(payload.right_id)
     if not left or not right:
         raise HTTPException(status_code=404, detail="Document not found")
 
     comparison = compare_contracts(left, right, provider)
-    add_activity(
+    repo.add_activity(
         left.id,
         ActivityItem(
             type="compare",
@@ -449,12 +451,12 @@ def reindex_embeddings(payload: ReindexRequest):
     real embeddings API to upgrade without changing these endpoints.
     """
     if payload.doc_id:
-        doc = get_document(payload.doc_id)
+        doc = repo.get_document(payload.doc_id)
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
         docs = [doc]
     else:
-        docs = list_documents()
+        docs = repo.list_documents()
 
     total_fragments = 0
     for doc in docs:
@@ -481,7 +483,7 @@ def document_embeddings(doc_id: str, include_vectors: bool = False):
     Returns ``404`` when no embeddings exist — run
     ``POST /embeddings/reindex`` first.
     """
-    item = get_document(doc_id)
+    item = repo.get_document(doc_id)
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
     records = get_document_embeddings(doc_id, include_vectors=include_vectors)
@@ -510,7 +512,7 @@ def vector_search_document(doc_id: str, query: str, top_k: int = 3):
     significantly once ``local_embed`` is replaced with a real sentence
     embedding model.
     """
-    item = get_document(doc_id)
+    item = repo.get_document(doc_id)
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
     if not query.strip():
@@ -608,4 +610,3 @@ def auth_me(authorization: str = Header(default="")):
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return UserPublic(**user)
-

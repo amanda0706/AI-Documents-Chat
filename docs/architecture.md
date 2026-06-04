@@ -6,7 +6,12 @@ Next.js frontend
       v
 FastAPI backend
       |
-      +--> local document store   (JSON / filesystem)
+      +--> DocumentRepository interface   (repository.py)
+      |       |
+      |       +--> JsonDocumentRepository   (default, STORAGE_BACKEND=json)
+      |       +--> PostgresDocumentRepository (planned, STORAGE_BACKEND=postgres)
+      |               |
+      |               +--> store.py / store_pg.py  (filesystem / PostgreSQL)
       |
       +--> EmbeddingIndex         (data/embeddings.json)
       |       |
@@ -143,17 +148,32 @@ layer to complete the migration without touching the API endpoints.
 
 ## Storage interface
 
-``store.py`` is the only module that touches the filesystem.  Every API route
-in ``main.py`` calls its public functions and nothing else from the persistence
-layer.  The full function signatures are documented in
+``repository.py`` defines a `DocumentRepository` Protocol (PEP 544, structural
+typing) that covers all document persistence operations.  Every API route in
+``main.py`` calls ``repo.*`` methods — the active repository is selected once
+at startup via ``get_repository()`` and stored as ``main.repo``.
+
+```text
+STORAGE_BACKEND=json      → JsonDocumentRepository   (default)
+STORAGE_BACKEND=postgres  → raises ValueError until implemented
+```
+
+``JsonDocumentRepository`` delegates every method to ``store.py`` at call time,
+so existing test monkeypatching of ``store.INDEX_FILE`` / ``store.DATA_DIR``
+continues to work without any test changes.
+
+The full function signatures are documented in
 [docs/database-schema.md](database-schema.md#storage-interface--migration-contract).
 
-Replacing JSON storage with PostgreSQL requires only:
+Replacing JSON storage with PostgreSQL requires:
 
-1. Implement ``store_pg.py`` using the same function signatures.
-2. Change ``main.py`` to ``from .store_pg import ...`` instead of ``.store``.
-3. Run the existing 121-test suite — all tests pass unchanged because they
-   isolate the store via monkeypatch, not the module name.
+1. Add ``asyncpg`` or ``SQLAlchemy`` to ``requirements.txt``.
+2. Implement ``store_pg.py`` using the same function signatures as ``store.py``.
+3. Implement ``PostgresDocumentRepository`` in ``repository.py`` (remove the
+   ``__init__`` guard; delegate to ``store_pg``).
+4. Set ``STORAGE_BACKEND=postgres`` in the deployment environment.
+5. Run the existing test suite — no test changes required because tests
+   monkeypatch ``store.*`` attributes which are read at call time.
 
 ## Future mode
 
