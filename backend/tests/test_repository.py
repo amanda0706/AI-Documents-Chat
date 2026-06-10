@@ -5,7 +5,7 @@ Covers:
 - Factory selection via STORAGE_BACKEND env var
 - Protocol conformance
 - JsonDocumentRepository full CRUD round-trip
-- PostgresDocumentRepository fails clearly at construction
+- PostgresDocumentRepository construction and stub behaviour
 """
 from __future__ import annotations
 
@@ -93,15 +93,11 @@ class TestGetRepository:
         repo = get_repository()
         assert isinstance(repo, JsonDocumentRepository)
 
-    def test_postgres_raises_value_error(self, monkeypatch):
+    def test_postgres_returns_postgres_repository(self, monkeypatch):
+        """STORAGE_BACKEND=postgres now returns a real PostgresDocumentRepository."""
         monkeypatch.setenv("STORAGE_BACKEND", "postgres")
-        with pytest.raises(ValueError, match="not yet implemented"):
-            get_repository()
-
-    def test_postgres_error_mentions_json_fallback(self, monkeypatch):
-        monkeypatch.setenv("STORAGE_BACKEND", "postgres")
-        with pytest.raises(ValueError, match="STORAGE_BACKEND=json"):
-            get_repository()
+        repo = get_repository()
+        assert isinstance(repo, PostgresDocumentRepository)
 
     def test_unknown_backend_raises_value_error(self, monkeypatch):
         monkeypatch.setenv("STORAGE_BACKEND", "sqlite")
@@ -113,9 +109,21 @@ class TestGetRepository:
         repo = get_repository()
         assert isinstance(repo, DocumentRepository)
 
-    def test_postgres_raises_not_implemented_on_construction(self):
+    def test_postgres_constructs_without_error(self):
+        """PostgresDocumentRepository now constructs successfully (no guard)."""
+        repo = PostgresDocumentRepository()
+        assert isinstance(repo, PostgresDocumentRepository)
+
+    def test_postgres_stub_raises_not_implemented(self):
+        """Unimplemented operations must fail clearly, not silently."""
+        repo = PostgresDocumentRepository()
         with pytest.raises(NotImplementedError, match="not yet implemented"):
-            PostgresDocumentRepository()
+            repo.add_comment("id", None)  # type: ignore[arg-type]
+
+    def test_postgres_stub_error_mentions_json_fallback(self):
+        repo = PostgresDocumentRepository()
+        with pytest.raises(NotImplementedError, match="STORAGE_BACKEND=json"):
+            repo.share_document("id", "x@x.com")
 
 
 # ---------------------------------------------------------------------------

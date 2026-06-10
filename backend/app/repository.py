@@ -11,9 +11,10 @@ and provides two implementations:
       work because every method delegates to the store functions at call time.
 
   PostgresDocumentRepository
-      Placeholder that raises ``NotImplementedError`` at construction time.
-      Selecting this backend before ``store_pg.py`` is implemented fails
-      immediately and loudly rather than partway through a request.
+      Partial implementation backed by ``store_pg.py`` (psycopg2).
+      Four core operations are implemented: create_document, list_documents,
+      get_document, delete_document.  Unimplemented operations raise
+      ``NotImplementedError`` with a clear message pointing at the roadmap.
 
 Factory
 -------
@@ -25,7 +26,7 @@ changes: implement ``PostgresDocumentRepository`` and set the env var.
 Configuration
 -------------
   STORAGE_BACKEND=json      — default; JSON filesystem (data/documents.json)
-  STORAGE_BACKEND=postgres  — raises ValueError (not yet implemented)
+  STORAGE_BACKEND=postgres  — PostgresDocumentRepository (psycopg2 + DATABASE_URL)
 
 Migration path
 --------------
@@ -44,6 +45,7 @@ import os
 from typing import Protocol, runtime_checkable
 
 from . import store as _store
+from . import store_pg as _store_pg
 from .models import ActivityItem, CommentItem, DocumentDetail, DocumentSummary
 
 
@@ -247,33 +249,110 @@ class JsonDocumentRepository:
 
 
 # ---------------------------------------------------------------------------
-# PostgreSQL placeholder
+# PostgreSQL implementation  (core document lifecycle only)
 # ---------------------------------------------------------------------------
 
 class PostgresDocumentRepository:
     """
-    Placeholder for the PostgreSQL-backed document repository.
+    PostgreSQL-backed document repository using psycopg2.
 
-    **Not yet implemented.**  Raises ``NotImplementedError`` at construction
-    time so selecting this backend before it is ready fails immediately and
-    loudly — at startup, not mid-request.
+    **Implemented operations (scoped first slice):**
+      - ``list_documents``
+      - ``get_document``
+      - ``create_document``
+      - ``delete_document``
 
-    Migration path
-    --------------
-    1. Add asyncpg or SQLAlchemy to ``backend/requirements.txt``.
-    2. Implement each method using the schema in ``db/schema.sql`` and the
-       interface contract in ``docs/database-schema.md``.
-    3. Delete the ``__init__`` override below.
-    4. Run the existing test suite — no test changes required.
+    **Intentionally unimplemented (raise NotImplementedError):**
+      - ``create_document_version``
+      - ``list_document_versions``
+      - ``add_activity``
+      - ``share_document``
+      - ``add_comment``
+      - ``update_review_status``
+      - ``update_metadata``
+
+    Every method delegates to ``store_pg.*`` which manages its own connection
+    obtained from ``DATABASE_URL``.  A missing ``DATABASE_URL`` raises
+    ``RuntimeError`` at the first operation — not at construction — so the
+    error appears at call time with a clear message rather than at startup.
+
+    Schema
+    ------
+    db/schema.sql defines the target tables.  Fragment and embedding rows
+    are removed automatically by ON DELETE CASCADE when a document is deleted.
+
+    Migration path (extending this class)
+    --------------------------------------
+    1. Implement the corresponding function in ``store_pg.py``.
+    2. Replace the ``_not_implemented`` call in the stub method below with a
+       ``return _store_pg.<function>(...)`` delegation.
+    3. Run the existing test suite — JSON-path tests need no changes.
     """
 
-    def __init__(self) -> None:
-        raise NotImplementedError(
-            "PostgresDocumentRepository is not yet implemented. "
-            "See docs/database-schema.md for the interface contract and "
-            "db/schema.sql for the target schema. "
-            "Set STORAGE_BACKEND=json to use the default local JSON store."
+    # ------------------------------------------------------------------
+    # Implemented operations
+    # ------------------------------------------------------------------
+
+    def list_documents(self) -> list[DocumentDetail]:
+        return _store_pg.list_documents()
+
+    def get_document(self, doc_id: str) -> DocumentDetail | None:
+        return _store_pg.get_document(doc_id)
+
+    def create_document(
+        self,
+        filename: str,
+        page_texts: list[str],
+        summary: DocumentSummary,
+        *,
+        version_group_id: str | None = None,
+        extraction_method: str = "text",
+        owner: str = "",
+    ) -> DocumentDetail:
+        return _store_pg.create_document(
+            filename,
+            page_texts,
+            summary,
+            version_group_id=version_group_id,
+            extraction_method=extraction_method,
+            owner=owner,
         )
+
+    def delete_document(self, doc_id: str) -> bool:
+        return _store_pg.delete_document(doc_id)
+
+    # ------------------------------------------------------------------
+    # Intentional stubs — raise clearly rather than silently
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _not_implemented(op: str) -> None:
+        raise NotImplementedError(
+            f"PostgresDocumentRepository.{op} is not yet implemented. "
+            "Use STORAGE_BACKEND=json for the full document workflow. "
+            "See docs/architecture.md for the PostgreSQL migration roadmap."
+        )
+
+    def create_document_version(self, *_a, **_kw) -> None:  # type: ignore[return]
+        self._not_implemented("create_document_version")
+
+    def list_document_versions(self, *_a, **_kw) -> None:  # type: ignore[return]
+        self._not_implemented("list_document_versions")
+
+    def add_activity(self, *_a, **_kw) -> None:  # type: ignore[return]
+        self._not_implemented("add_activity")
+
+    def share_document(self, *_a, **_kw) -> None:  # type: ignore[return]
+        self._not_implemented("share_document")
+
+    def add_comment(self, *_a, **_kw) -> None:  # type: ignore[return]
+        self._not_implemented("add_comment")
+
+    def update_review_status(self, *_a, **_kw) -> None:  # type: ignore[return]
+        self._not_implemented("update_review_status")
+
+    def update_metadata(self, *_a, **_kw) -> None:  # type: ignore[return]
+        self._not_implemented("update_metadata")
 
 
 # ---------------------------------------------------------------------------
@@ -288,12 +367,16 @@ def get_repository() -> DocumentRepository:
     | STORAGE_BACKEND   | Result                                               |
     +===================+======================================================+
     | ``json`` (default)| ``JsonDocumentRepository``                           |
-    | ``postgres``      | raises ``ValueError`` (not yet implemented)          |
+    | ``postgres``      | ``PostgresDocumentRepository``                       |
     | anything else     | raises ``ValueError`` with the unrecognised value    |
     +-------------------+------------------------------------------------------+
 
-    Raises ``ValueError`` on unknown or unimplemented backends so that
-    misconfiguration is detected at startup, not during the first request.
+    When ``postgres`` is selected, ``DATABASE_URL`` must be set in the
+    environment.  A missing URL raises ``RuntimeError`` at the first
+    database operation (not at construction), providing a clear failure.
+
+    Raises ``ValueError`` on unknown backends so that misconfiguration is
+    detected at startup, not during the first request.
     """
     backend = os.getenv("STORAGE_BACKEND", "json").strip().lower()
 
@@ -301,13 +384,9 @@ def get_repository() -> DocumentRepository:
         return JsonDocumentRepository()
 
     if backend == "postgres":
-        raise ValueError(
-            "STORAGE_BACKEND=postgres is not yet implemented. "
-            "Implement PostgresDocumentRepository in repository.py first. "
-            "Set STORAGE_BACKEND=json to use the default local JSON store."
-        )
+        return PostgresDocumentRepository()
 
     raise ValueError(
         f"Unknown STORAGE_BACKEND={backend!r}. "
-        "Supported values: json"
+        "Supported values: json, postgres"
     )

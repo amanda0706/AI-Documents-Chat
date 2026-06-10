@@ -188,8 +188,8 @@ Tests: `backend/tests/test_auth.py` — 36 tests covering register, login, `/aut
 
 - `DocumentRepository` — `@runtime_checkable` Protocol covering all 11 document persistence operations.
 - `JsonDocumentRepository` — delegates every method to `store.*` at call time; monkeypatching `store.INDEX_FILE` in tests works unchanged.
-- `PostgresDocumentRepository` — placeholder; raises `NotImplementedError` at construction (fail-fast at startup, not mid-request).
-- `get_repository()` — factory driven by `STORAGE_BACKEND` env var (`json` default; `postgres` raises `ValueError`).
+- `PostgresDocumentRepository` — partial implementation (see below); delegates to `store_pg.*`.
+- `get_repository()` — factory driven by `STORAGE_BACKEND` env var (`json` default; `postgres` returns `PostgresDocumentRepository`).
 
 `main.py` changes:
 - All document store function imports removed; `UPLOADS_DIR` kept as direct import (temp file handling during upload is not a repository concern).
@@ -198,11 +198,39 @@ Tests: `backend/tests/test_auth.py` — 36 tests covering register, login, `/aut
 
 Tests: `backend/tests/test_repository.py` — 26 tests covering factory selection, protocol conformance, and full CRUD round-trip.
 
-Migration to PostgreSQL (when ready):
-1. Implement `store_pg.py` with the same function signatures as `store.py`.
-2. Implement `PostgresDocumentRepository` methods (remove `__init__` guard; delegate to `store_pg`).
-3. Set `STORAGE_BACKEND=postgres`.
-4. Run existing tests — no changes required.
+## PostgreSQL document lifecycle (implemented — first slice)
+
+`backend/app/store_pg.py` — psycopg2-binary implementation of the core document lifecycle:
+
+**Implemented:** `create_document`, `list_documents`, `get_document`, `delete_document`
+  - `delete_document` relies on `ON DELETE CASCADE` in `db/schema.sql` to remove fragments, embeddings, shares, comments, and activity automatically.
+  - All queries use `%s` parameterised placeholders — no string interpolation.
+  - Each operation acquires a connection from `DATABASE_URL`, commits on success, rolls back on error, always closes.
+
+**Intentional stubs (raise `NotImplementedError` with a clear message):**
+  `create_document_version`, `list_document_versions`, `add_activity`, `share_document`, `add_comment`, `update_review_status`, `update_metadata`
+
+**Dependencies:** `psycopg2-binary==2.9.12` added to `requirements.txt`.
+
+**Tests:**
+- `backend/tests/test_postgres_repository.py` — 48 unit tests (mocked cursor, no Docker required) + 9 integration tests (skipped unless `TEST_DATABASE_URL` is set).
+- `backend/conftest.py` — registers `integration` mark so pytest does not emit warnings.
+- Unit tests verify parameterised SQL, commit/rollback contract, and delegation from `PostgresDocumentRepository` → `store_pg`.
+
+**Activate locally:**
+```bash
+# backend/.env (gitignored)
+STORAGE_BACKEND=postgres
+DATABASE_URL=postgresql://luminaclause:luminaclause_dev@localhost:5432/luminaclause
+```
+
+**Run integration tests (requires Docker db service):**
+```bash
+$env:TEST_DATABASE_URL="postgresql://luminaclause:luminaclause_dev@localhost:5432/luminaclause_test"
+python -m pytest backend/tests/test_postgres_repository.py -m integration -v
+```
+
+Extending the implementation: add a SQL function to `store_pg.py`, replace the `_not_implemented()` stub call in `PostgresDocumentRepository`, add a mock-cursor unit test. JSON-path tests need no changes.
 
 ## Current recommended next step
 
@@ -220,8 +248,8 @@ Do not break local-first operation. Do not require any API key for tests or CI.
 The next serious production upgrades are:
 
 - OpenAI provider SDK calls (mirrors ClaudeProvider — seam is already in place),
+- complete the PostgreSQL repository (implement remaining 7 operations in `store_pg.py`),
 - swap `local_embed` for real sentence embeddings (OpenAI, sentence-transformers) — no endpoint changes needed,
 - real auth/workspaces,
-- PostgreSQL + pgvector (migration SQL in `docs/architecture.md`),
 - object storage,
 - deployment once a free/acceptable hosting path is chosen.

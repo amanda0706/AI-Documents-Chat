@@ -154,26 +154,53 @@ typing) that covers all document persistence operations.  Every API route in
 at startup via ``get_repository()`` and stored as ``main.repo``.
 
 ```text
-STORAGE_BACKEND=json      → JsonDocumentRepository   (default)
-STORAGE_BACKEND=postgres  → raises ValueError until implemented
+STORAGE_BACKEND=json      → JsonDocumentRepository    (default)
+STORAGE_BACKEND=postgres  → PostgresDocumentRepository (psycopg2 + DATABASE_URL)
 ```
 
 ``JsonDocumentRepository`` delegates every method to ``store.py`` at call time,
 so existing test monkeypatching of ``store.INDEX_FILE`` / ``store.DATA_DIR``
 continues to work without any test changes.
 
-The full function signatures are documented in
-[docs/database-schema.md](database-schema.md#storage-interface--migration-contract).
+### PostgreSQL implementation — first slice (implemented)
 
-Replacing JSON storage with PostgreSQL requires:
+``store_pg.py`` (psycopg2-binary) implements the core document lifecycle:
 
-1. Add ``asyncpg`` or ``SQLAlchemy`` to ``requirements.txt``.
-2. Implement ``store_pg.py`` using the same function signatures as ``store.py``.
-3. Implement ``PostgresDocumentRepository`` in ``repository.py`` (remove the
-   ``__init__`` guard; delegate to ``store_pg``).
-4. Set ``STORAGE_BACKEND=postgres`` in the deployment environment.
-5. Run the existing test suite — no test changes required because tests
-   monkeypatch ``store.*`` attributes which are read at call time.
+| Operation | Status |
+|---|---|
+| ``create_document`` | ✓ implemented |
+| ``list_documents`` | ✓ implemented |
+| ``get_document`` | ✓ implemented |
+| ``delete_document`` | ✓ implemented — CASCADE removes fragments, embeddings, shares, comments, activity |
+| ``create_document_version`` | stub — ``NotImplementedError`` |
+| ``list_document_versions`` | stub — ``NotImplementedError`` |
+| ``add_activity`` | stub — ``NotImplementedError`` |
+| ``share_document`` | stub — ``NotImplementedError`` |
+| ``add_comment`` | stub — ``NotImplementedError`` |
+| ``update_review_status`` | stub — ``NotImplementedError`` |
+| ``update_metadata`` | stub — ``NotImplementedError`` |
+
+**SQL injection:** every value passes through a ``%s`` parameterised placeholder.
+No string formatting is used in any query body.
+
+**Transaction model:** each public function opens its own connection (from
+``DATABASE_URL``), commits on success, rolls back on any exception, and closes
+the connection in the ``finally`` block.
+
+**Unit tests** mock ``store_pg._connection`` so CI runs without Docker.
+**Integration tests** use ``TEST_DATABASE_URL`` (distinct from ``DATABASE_URL``
+to prevent accidental production-database usage) and are skipped unless set.
+
+### Completing the PostgreSQL migration
+
+To add a new operation:
+
+1. Implement the function in ``store_pg.py`` using parameterised SQL.
+2. Replace the ``_not_implemented()`` call in the matching stub method in
+   ``PostgresDocumentRepository`` (``repository.py``) with a delegation to
+   the new ``store_pg.*`` function.
+3. Add unit tests in ``test_postgres_repository.py`` (mock cursor pattern).
+4. Run the existing test suite — JSON-path tests need no changes.
 
 ## Future mode
 

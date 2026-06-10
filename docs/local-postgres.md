@@ -1,8 +1,9 @@
 # Local PostgreSQL + pgvector runtime
 
-**Status:** the backend still uses JSON persistence (`store.py`).  The database
-service is provided so the production schema is always runnable locally and ready
-to wire.
+**Status:** the core document lifecycle (create / list / get / delete) is now
+implemented in `store_pg.py` behind `STORAGE_BACKEND=postgres`.  JSON persistence
+remains the default.  Remaining operations (versioning, comments, shares, status,
+metadata) are stubs that raise `NotImplementedError` until wired.
 
 ---
 
@@ -139,19 +140,73 @@ docker compose down -v
 
 ---
 
-## Wiring the backend to PostgreSQL
+## Using the PostgreSQL backend
 
-The backend reads `DATABASE_URL` from its environment.  The connection is not
-active until `store_pg.py` is implemented and `store.py` is swapped out.
+### Activate for the running stack
 
-When ready:
+Add these two lines to `backend/.env` (gitignored), then restart the backend:
 
-1. Uncomment `DATABASE_URL` in `docker-compose.yml` (backend service).
-2. Add `db` to the backend `depends_on` block (see comment in the file).
-3. Implement `backend/app/store_pg.py` with the same function signatures as
-   `store.py` (the contract is documented in `docs/database-schema.md`).
-4. Change `main.py` imports from `.store` to `.store_pg`.
-5. Run existing tests — they monkeypatch the store, so no test changes are needed.
+```bash
+STORAGE_BACKEND=postgres
+DATABASE_URL=postgresql://luminaclause:luminaclause_dev@localhost:5432/luminaclause
+```
+
+For Docker Compose the backend reaches the db via its internal hostname:
+
+```bash
+DATABASE_URL=postgresql://luminaclause:luminaclause_dev@db:5432/luminaclause
+```
+
+### Implemented operations (first slice)
+
+| Operation | Status |
+|---|---|
+| `create_document` | ✓ implemented |
+| `list_documents` | ✓ implemented |
+| `get_document` | ✓ implemented |
+| `delete_document` | ✓ CASCADE removes fragments, embeddings, shares, comments, activity |
+| `create_document_version` | stub — `NotImplementedError` |
+| `list_document_versions` | stub — `NotImplementedError` |
+| `add_activity` | stub — `NotImplementedError` |
+| `share_document` | stub — `NotImplementedError` |
+| `add_comment` | stub — `NotImplementedError` |
+| `update_review_status` | stub — `NotImplementedError` |
+| `update_metadata` | stub — `NotImplementedError` |
+
+Unimplemented operations fail loudly at call time with a message pointing to
+`docs/architecture.md` — they never silently fall back to JSON.
+
+### Run PostgreSQL integration tests
+
+Integration tests require a separate `TEST_DATABASE_URL` (never `DATABASE_URL`)
+to prevent accidental production-database usage:
+
+```bash
+# Spin up the db service if it isn't already running
+docker compose up db -d
+
+# Create a dedicated test database
+docker compose exec db psql -U luminaclause -c "CREATE DATABASE luminaclause_test;"
+
+# Run only the integration-marked tests
+$env:TEST_DATABASE_URL="postgresql://luminaclause:luminaclause_dev@localhost:5432/luminaclause_test"
+python -m pytest backend/tests/test_postgres_repository.py -m integration -v
+```
+
+Each test class creates a fresh temporary schema, runs real CRUD operations,
+verifies CASCADE deletes, then drops the schema in teardown.  They are skipped
+automatically when `TEST_DATABASE_URL` is unset.
+
+### Extending the implementation
+
+To implement an additional operation (e.g. `add_comment`):
+
+1. Write the SQL function in `backend/app/store_pg.py` using `%s` placeholders.
+2. Replace `self._not_implemented("add_comment")` in
+   `PostgresDocumentRepository.add_comment` (`repository.py`) with
+   `return _store_pg.add_comment(...)`.
+3. Add unit tests in `test_postgres_repository.py` using the mock-cursor pattern.
+4. Run the full test suite — JSON-path tests need no changes.
 
 See [`docs/architecture.md`](architecture.md) for the full migration path,
 including pgvector retrieval queries and the `EMBED_DIM` upgrade path.
