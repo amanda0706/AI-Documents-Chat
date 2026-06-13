@@ -214,33 +214,156 @@ class ClaudeProvider:
 
 @dataclass(frozen=True)
 class OpenAIProvider:
-    """Adapter seam for OpenAI. Requires OPENAI_API_KEY at runtime.
+    """OpenAI ChatCompletion adapter. Requires OPENAI_API_KEY at runtime.
 
-    Not active unless ANALYSIS_PROVIDER=openai is set with a valid key.
-    Uses retrieved source fragments as context so full documents are not blindly sent.
+    Activated by setting ANALYSIS_PROVIDER=openai.  Uses retrieved source
+    fragments as context so full documents are never blindly sent to the API.
+    Structured analysis fields (risks, score, suggestions, missing clauses) are
+    still computed locally so scoring stays deterministic and explainable.
+
+    The prompts and JSON response contract are identical to ClaudeProvider,
+    so both providers are interchangeable from the application's perspective.
+    Only the SDK call and response accessor differ between the two.
     """
 
     name: str = "openai"
     api_key: str = ""
     model: str = "gpt-4o"
 
+    def _client(self):  # type: ignore[return]
+        try:
+            import openai  # noqa: PLC0415
+        except ImportError as exc:
+            raise RuntimeError(
+                "The 'openai' package is not installed. "
+                "Run: pip install openai"
+            ) from exc
+        return openai.OpenAI(api_key=self.api_key)
+
+    @staticmethod
+    def _text(response) -> str:  # type: ignore[return]
+        """Extract the string content from a ChatCompletion response."""
+        return response.choices[0].message.content or ""
+
     def summarize_document(self, filename: str, text: str) -> DocumentSummary:
-        raise NotImplementedError(
-            "OpenAIProvider.summarize_document is a stub. "
-            "Implement with openai SDK when ready."
+        """Ask the model for a prose summary and highlights; keep local structured analysis."""
+        client = self._client()
+        truncated = text[:_MAX_DOC_CHARS]
+        prompt = (
+            "You are a contract analyst. Read the contract text below and return a JSON object "
+            "with exactly two fields:\n"
+            '- "summary": a 2-3 sentence plain-English overview of what this contract covers\n'
+            '- "highlights": a list of 3-5 key points a reviewer should know\n\n'
+            "Return only valid JSON — no markdown fences, no extra keys.\n\n"
+            f"Contract text:\n{truncated}"
+        )
+        response = client.chat.completions.create(
+            model=self.model,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = _strip_fences(self._text(response))
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            parsed = {}
+
+        prose_summary = parsed.get("summary") or " ".join(summarize(text))
+        highlights = parsed.get("highlights") or summarize(text)
+
+        risks = analyze_risks(text)
+        return DocumentSummary(
+            title=filename,
+            summary=prose_summary,
+            highlights=highlights,
+            risks=risks,
+            suggestions=build_suggestions(risks),
+            missing_clauses=find_missing_clauses(text),
+            language=detect_language(text),
+            overall_score=overall_score(risks),
         )
 
     def answer(self, question: str, fragments: list[str]) -> tuple[str, list[str]]:
-        raise NotImplementedError(
-            "OpenAIProvider.answer is a stub. "
-            "Implement with openai SDK when ready."
+        """Ask the model a question grounded in the provided document fragments.
+
+        Returns ``(answer_text, used_fragment_texts)`` so that the /ask route
+        can match used fragments back to stored DocumentFragment objects and
+        preserve citations.
+        """
+        if not fragments:
+            return ("No document content available to answer from.", [])
+
+        client = self._client()
+        fragment_block = "\n".join(
+            f"[{i}] {frag}" for i, frag in enumerate(fragments)
         )
+        prompt = (
+            "You are a contract analyst. Answer the question using only the document "
+            "fragments provided below.\n"
+            "If the answer cannot be found in the fragments, say so clearly.\n\n"
+            "Return a JSON object with exactly two fields:\n"
+            '- "answer": your answer as a plain string\n'
+            '- "used_indices": a list of 0-based integer indices of the fragments you used\n\n'
+            "Return only valid JSON — no markdown fences.\n\n"
+            f"Document fragments:\n{fragment_block}\n\n"
+            f"Question: {question}"
+        )
+        response = client.chat.completions.create(
+            model=self.model,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = _strip_fences(self._text(response))
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            parsed = {}
+
+        answer_text = parsed.get("answer", "")
+        used_indices: list[int] = [
+            int(i) for i in parsed.get("used_indices", [])
+            if isinstance(i, (int, float)) and 0 <= int(i) < len(fragments)
+        ]
+        used_fragments = [fragments[i] for i in used_indices]
+        return (answer_text, used_fragments)
 
     def compare(self, left_text: str, right_text: str) -> list[DifferenceItem]:
-        raise NotImplementedError(
-            "OpenAIProvider.compare is a stub. "
-            "Implement with openai SDK when ready."
+        """Ask the model to identify material differences between two contracts."""
+        client = self._client()
+        prompt = (
+            "You are a contract analyst. Compare the two contract texts below and identify "
+            "material differences.\n\n"
+            "Return a JSON object with one field:\n"
+            '- "differences": a list of objects, each with:\n'
+            '  - "category": one of payment, termination, liability, renewal, confidentiality, other\n'
+            '  - "left_text": the relevant excerpt from Contract A (or "not found")\n'
+            '  - "right_text": the relevant excerpt from Contract B (or "not found")\n'
+            '  - "impact": a brief explanation of why this difference matters\n\n'
+            "Return only valid JSON — no markdown fences. "
+            "Use an empty list if no material differences are found.\n\n"
+            f"Contract A:\n{left_text[:_MAX_COMPARE_CHARS]}\n\n"
+            f"Contract B:\n{right_text[:_MAX_COMPARE_CHARS]}"
         )
+        response = client.chat.completions.create(
+            model=self.model,
+            max_tokens=2048,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = _strip_fences(self._text(response))
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            parsed = {}
+
+        return [
+            DifferenceItem(
+                category=item.get("category", "other"),
+                left_text=item.get("left_text", ""),
+                right_text=item.get("right_text", ""),
+                impact=item.get("impact", ""),
+            )
+            for item in parsed.get("differences", [])
+        ]
 
 
 def get_provider() -> AnalysisProvider:

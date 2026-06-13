@@ -403,7 +403,7 @@ immediately with pre-loaded synthetic documents — nothing is uploaded to the b
 
 Current local checks:
 
-- Backend test suite: `248 passed, 9 skipped` (integration tests skipped; run with `TEST_DATABASE_URL` set)
+- Backend test suite: `259 passed, 9 skipped` (integration tests skipped; run with `TEST_DATABASE_URL` set)
 - Frontend production build: `next build` passes
 - GitHub Actions: backend tests + frontend build on push and pull request
 - Docker Compose stack: frontend + FastAPI backend with persistent backend volume
@@ -474,7 +474,7 @@ The `samples/` directory contains two small contract examples that are useful wh
 5. ~~Add JWT-ready local auth (PBKDF2, HS256, timing-safe)~~ ✓ done
 6. ~~Add optional local PostgreSQL + pgvector runtime via Docker Compose~~ ✓ done
 7. ~~Implement PostgreSQL document lifecycle repository (create/list/get/delete via psycopg2)~~ ✓ done
-8. Wire `OpenAIProvider` SDK calls (mirrors `ClaudeProvider`)
+8. ~~Wire `OpenAIProvider` SDK calls (mirrors `ClaudeProvider`)~~ ✓ done
 9. Complete PostgreSQL repository — implement remaining 7 operations (`store_pg.py`)
 10. Store files in S3 / Blob Storage
 11. Deploy frontend + backend

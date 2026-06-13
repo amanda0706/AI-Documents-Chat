@@ -232,23 +232,40 @@ python -m pytest backend/tests/test_postgres_repository.py -m integration -v
 
 Extending the implementation: add a SQL function to `store_pg.py`, replace the `_not_implemented()` stub call in `PostgresDocumentRepository`, add a mock-cursor unit test. JSON-path tests need no changes.
 
+## OpenAI provider (implemented)
+
+`OpenAIProvider` in `backend/app/providers.py` — fully wired, `openai==2.41.1`:
+
+- `summarize_document` — `chat.completions.create` → JSON `{summary, highlights}` → same local fallback as `ClaudeProvider`.
+- `answer` — grounded Q&A with `{answer, used_indices}` → citation matching.
+- `compare` — material-difference detection with `{differences: [{category, left_text, right_text, impact}]}`.
+
+Prompts are identical to `ClaudeProvider`; only the SDK call and response accessor differ.
+Structured fields (risks, score, suggestions) remain local — same as Claude path.
+11 new tests in `test_providers.py` (mocked, no real key needed). Full suite: **259 passed, 9 skipped**.
+
+Activate:
+```bash
+# backend/.env
+ANALYSIS_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+# AI_MODEL=gpt-4o   (optional override)
+```
+
 ## Current recommended next step
 
-Wire `OpenAIProvider` SDK calls to match the `ClaudeProvider` pattern:
+Complete the PostgreSQL repository — implement remaining 7 operations in `store_pg.py`:
+`create_document_version`, `list_document_versions`, `add_activity`, `share_document`,
+`add_comment`, `update_review_status`, `update_metadata`.
 
-1. Add `openai` to `backend/requirements.txt`.
-2. Implement `OpenAIProvider.summarize_document`, `.answer`, `.compare` following the same JSON-structured prompt pattern used in `ClaudeProvider`.
-3. Add mocked unit tests (mirror `test_providers.py` Claude tests).
-4. Run backend tests and frontend build before committing.
-
-Do not break local-first operation. Do not require any API key for tests or CI.
+Each operation follows the established pattern: parameterised SQL, single connection per
+call, commit/rollback, delegate from `PostgresDocumentRepository`.
 
 ## Product direction
 
 The next serious production upgrades are:
 
-- OpenAI provider SDK calls (mirrors ClaudeProvider — seam is already in place),
-- complete the PostgreSQL repository (implement remaining 7 operations in `store_pg.py`),
+- complete the PostgreSQL repository (7 remaining operations in `store_pg.py`),
 - swap `local_embed` for real sentence embeddings (OpenAI, sentence-transformers) — no endpoint changes needed,
 - real auth/workspaces,
 - object storage,
