@@ -214,15 +214,17 @@ Next.js frontend
       v
 FastAPI backend
       |
-      +--> local document store
-      +--> analysis provider interface
-              |
+      +--> DocumentRepository interface
+      |       +--> JsonDocumentRepository   (default, STORAGE_BACKEND=json)
+      |       +--> PostgresDocumentRepository (STORAGE_BACKEND=postgres)
+      |
+      +--> AnalysisProvider interface
               +--> LocalProvider   (default, no key)
               +--> ClaudeProvider  (ANTHROPIC_API_KEY)
               +--> OpenAIProvider  (OPENAI_API_KEY)
 ```
 
-The product is intentionally split so the user-facing workflow can stay stable while the intelligence layer evolves from local heuristics to hosted AI and vector search. The backend also exposes `GET /health` and `GET /metrics` so the local MVP already has a production-style seam for monitoring.
+The product is intentionally split so the user-facing workflow stays stable while the intelligence and persistence layers evolve independently. The backend exposes `GET /health`, `GET /metrics`, `GET /provider`, and `GET /runtime` so the local MVP already has a production-style seam for monitoring and observability.
 
 ## Deployment
 
@@ -250,9 +252,9 @@ Then open:
 The frontend proxies `/api/*` to the backend container through `INTERNAL_API_URL`, so the browser talks to one frontend origin while the server-side rewrite reaches FastAPI internally. Backend data is stored in the `backend-data` Docker volume.
 
 The `db` service (`pgvector/pgvector:pg16`) starts alongside the stack and
-applies `db/schema.sql` automatically on first run.  The backend continues to
-use JSON persistence — the database is available for schema exploration and
-future wiring without changing any product behaviour.
+applies `db/schema.sql` automatically on first run.  The backend defaults to
+JSON persistence (`STORAGE_BACKEND=json`).  Set `STORAGE_BACKEND=postgres` plus
+`DATABASE_URL` in `backend/.env` to activate the PostgreSQL CRUD layer.
 
 ```powershell
 # Override the dev-only DB password
@@ -373,7 +375,7 @@ Upload all three for the richest demo: risk comparison, version comparison, and 
 ## Quick demo path
 
 1. Start the backend and frontend (see **Local run** above).
-2. Sign in with any email address (local session mock — no real auth).
+2. Sign in or create an account — JWT issued by the backend, token validated on every page load.
 3. Upload all three files from `samples/` — drag and drop or use the upload button.
 4. On the **Dashboard** view, inspect the risk queue and overall scores.
 5. Open the **Document** view for `master-services-agreement.txt`.
@@ -390,14 +392,16 @@ immediately with pre-loaded synthetic documents — nothing is uploaded to the b
 
 ## What makes this portfolio-ready
 
-- Real product framing around a concrete workflow, not just generic chat
-- Polished AI interaction details: markdown-rendered AI answers, report preview, citations, and chat history
+- Real product framing around a concrete document-review workflow — not a generic chatbot
+- Polished AI interaction: streaming answers, markdown rendering, citations, chat history, and report preview
 - Full-stack delivery across Next.js and FastAPI
-- Explainable AI-oriented architecture with citations and a swappable provider layer
-- Workflow features beyond MVP: local auth mock, ownership, comments, status, deadlines, review queue, archive flow, markdown report preview, export
-- Automated backend/API tests, upload guardrail coverage, and frontend production build checks
-- Fresh-clone bootstrap scripts and Docker Compose for repeatable setup
-- Clear migration path from local prototype to hosted AI and cloud persistence
+- Two cloud AI providers fully wired (Claude, OpenAI) behind a shared interface — swappable via env var, no code change
+- `DocumentRepository` abstraction with JSON and PostgreSQL backends — demonstrates real migration thinking
+- JWT-ready local auth backed by real cryptography (PBKDF2-SHA256, HS256, timing-safe verification)
+- Observable runtime: `/provider` and `/runtime` endpoints surface AI and storage config to the dashboard
+- Workflow features: ownership, comments, status, deadlines, review queue, archive flow, report export
+- 263 backend tests, CI, Docker Compose, Swagger/OpenAPI, API reference, architecture notes, and deployment guide
+- Fresh-clone bootstrap scripts; runtime data gitignored so the repo stays clean
 
 
 ## Validation
@@ -476,10 +480,11 @@ The local API applies production-minded guardrails before analysis starts:
 
 ## Demo materials
 
-The `samples/` directory contains two small contract examples that are useful when demonstrating the comparison and risk-analysis flow. They can be uploaded directly as `.txt` files:
+The `samples/` directory contains three synthetic contracts that are useful when demonstrating the comparison and risk-analysis flow. They can be uploaded directly as `.txt` files:
 
 - `master-services-agreement.txt`
 - `supplier-agreement.txt`
+- `nda-mutual.txt`
 
 ## Roadmap toward production
 
