@@ -60,6 +60,7 @@ Useful portfolio materials:
 - [Local PostgreSQL runbook](docs/local-postgres.md)
 - [Local MVP release checklist](docs/release-checklist.md)
 - [Portfolio summary](docs/portfolio-summary.md)
+- [Recruiter pitch](docs/recruiter-pitch.md)
 - [Deployment guide](docs/deployment.md)
 - [Claude handoff](CLAUDE.md)
 - [Detailed Claude handoff](docs/claude-handoff.md)
