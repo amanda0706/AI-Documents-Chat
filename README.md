@@ -122,7 +122,7 @@ Provider architecture:
 - a shared `AnalysisProvider` interface used by every route,
 - `LocalProvider` — active by default, no API key required,
 - `ClaudeProvider` — fully implemented, activated by setting `ANTHROPIC_API_KEY`,
-- `OpenAIProvider` — adapter seam ready, key-guarded.
+- `OpenAIProvider` — fully wired, activated by setting `OPENAI_API_KEY`.
 
 **Local mode is the default and requires no credentials.** The local provider runs entirely on your machine — no document text ever leaves it.
 
@@ -201,8 +201,8 @@ Future provider layer:
 
 - Frontend: Next.js + TypeScript + Tailwind
 - Backend: Python + FastAPI
-- Storage now: local filesystem + JSON
-- Planned persistence: PostgreSQL + pgvector
+- Storage: JSON (default) · PostgreSQL CRUD wired (`STORAGE_BACKEND=postgres`)
+- Planned persistence: complete PostgreSQL repository + pgvector
 - Containerization: Docker + Docker Compose
 - Planned cloud: AWS or Azure
 
@@ -217,8 +217,9 @@ FastAPI backend
       +--> local document store
       +--> analysis provider interface
               |
-              +--> local provider now
-              +--> hosted provider later
+              +--> LocalProvider   (default, no key)
+              +--> ClaudeProvider  (ANTHROPIC_API_KEY)
+              +--> OpenAIProvider  (OPENAI_API_KEY)
 ```
 
 The product is intentionally split so the user-facing workflow can stay stable while the intelligence layer evolves from local heuristics to hosted AI and vector search. The backend also exposes `GET /health` and `GET /metrics` so the local MVP already has a production-style seam for monitoring.
@@ -491,6 +492,6 @@ The `samples/` directory contains two small contract examples that are useful wh
 7. ~~Implement PostgreSQL document lifecycle repository (create/list/get/delete via psycopg2)~~ ✓ done
 8. ~~Wire `OpenAIProvider` SDK calls (mirrors `ClaudeProvider`)~~ ✓ done
 9. ~~Add visible storage backend status badge (`/runtime` endpoint + frontend badge)~~ ✓ done
-10. Complete PostgreSQL repository — implement remaining 7 operations (`store_pg.py`)
-10. Store files in S3 / Blob Storage
-11. Deploy frontend + backend
+10. Complete PostgreSQL repository — implement remaining 7 operations in `store_pg.py`
+11. Store files in S3 / Blob Storage
+12. Deploy frontend + backend

@@ -9,7 +9,7 @@ FastAPI backend
       +--> DocumentRepository interface   (repository.py)
       |       |
       |       +--> JsonDocumentRepository   (default, STORAGE_BACKEND=json)
-      |       +--> PostgresDocumentRepository (planned, STORAGE_BACKEND=postgres)
+      |       +--> PostgresDocumentRepository (partial, STORAGE_BACKEND=postgres)
       |               |
       |               +--> store.py / store_pg.py  (filesystem / PostgreSQL)
       |
@@ -21,8 +21,8 @@ FastAPI backend
       +--> AnalysisProvider interface
               |
               +--> LocalProvider       (default, no key required)
-              +--> ClaudeProvider      (set ANTHROPIC_API_KEY)
-              +--> OpenAIProvider      (adapter seam — set OPENAI_API_KEY)
+              +--> ClaudeProvider      (fully wired — set ANTHROPIC_API_KEY)
+              +--> OpenAIProvider      (fully wired — set OPENAI_API_KEY)
 ```
 
 ## Auth layer
@@ -61,12 +61,15 @@ so the demo always works.
 
 ## Current mode
 
-- Documents are stored locally.
-- Metadata is stored in JSON.
+- Documents are stored locally (JSON default; PostgreSQL lifecycle CRUD implemented).
+- Metadata is stored in JSON; migration path to PostgreSQL is documented and partially wired.
 - Analysis runs through a provider interface (`AnalysisProvider`).
-- The active provider is deterministic, local, and explainable.
-- Provider selection is configuration-driven through `ANALYSIS_PROVIDER`.
+- Default provider is deterministic and local — no key, no network calls.
+- `ClaudeProvider` and `OpenAIProvider` are fully wired — fragments are sent to the selected API when a key is set.
+- Provider and storage-backend selection are configuration-driven (`ANALYSIS_PROVIDER`, `STORAGE_BACKEND`).
 - Core API payloads use validated enums and date-shaped metadata fields.
+- Streaming answers use SSE (`/documents/{id}/ask/stream`).
+- Dashboard shows real-time AI provider and storage backend status badges (from `/provider` and `/runtime`).
 
 ## Provider configuration
 
@@ -76,7 +79,7 @@ so the demo always works.
 |---|---|---|
 | `local` (default) | none | active — all analysis runs on-device |
 | `claude` | `ANTHROPIC_API_KEY` | implemented — sends fragments to Anthropic API |
-| `openai` | `OPENAI_API_KEY` | adapter seam ready — SDK calls not yet wired |
+| `openai` | `OPENAI_API_KEY` | implemented — sends fragments to OpenAI API (`gpt-4o` default) |
 
 Selecting a cloud provider without the matching key raises a clear `ValueError` at startup — no silent fallback. The optional `AI_MODEL` variable overrides the default model for the selected provider.
 
@@ -202,14 +205,20 @@ To add a new operation:
 3. Add unit tests in ``test_postgres_repository.py`` (mock cursor pattern).
 4. Run the existing test suite — JSON-path tests need no changes.
 
-## Future mode
+## Future mode (intentionally not yet implemented)
 
-- PostgreSQL stores users, documents, chats, shares, and clause metadata.
-  See the full schema plan in [docs/database-schema.md](database-schema.md)
-  and the runnable DDL in [db/schema.sql](../db/schema.sql).
-- pgvector stores embeddings (migration path documented above and in the schema).
-- Object storage keeps the original files.
-- ``OpenAIProvider`` SDK calls wired (mirrors the existing ``ClaudeProvider`` pattern).
+- **Complete PostgreSQL repository** — 7 remaining operations in `store_pg.py`:
+  `create_document_version`, `list_document_versions`, `add_activity`, `share_document`,
+  `add_comment`, `update_review_status`, `update_metadata`.
+  Schema plan: [docs/database-schema.md](database-schema.md) · DDL: [db/schema.sql](../db/schema.sql).
+- **pgvector embeddings** — migrate `_save_raw` / `_load_raw` in `embeddings.py`
+  to asyncpg/SQLAlchemy; migration SQL documented above.
+- **Production auth** — swap `auth_store.py` for a PostgreSQL-backed store; set
+  `AUTH_SECRET` to a 256-bit secret; add HTTPS; optionally delegate to Clerk, Supabase Auth, or Auth0.
+- **Object storage** — store original uploaded files in S3 or Azure Blob; keep the
+  `UPLOADS_DIR` abstraction as the seam.
+- **Hosted deployment** — Vercel (frontend) + Render/Railway (backend); see
+  [docs/deployment.md](deployment.md).
 
 ## Why this split matters
 
@@ -219,9 +228,17 @@ The frontend already speaks to stable backend endpoints, while the backend now s
 
 - Landing page with product positioning and GitHub CTA.
 - Drag-and-drop PDF/TXT upload with visible progress states.
-- Document-grounded Q&A with local conversation history and cited fragments.
+- Document-grounded Q&A with cited fragments; streaming SSE answers.
+- Local conversation history, fragment search, and RAG-ready vector retrieval.
+- Risk scoring, suggested safer wording, missing clause detection.
 - Review workflow: comments, status, metadata, deadlines, and activity timeline.
+- Contract comparison and version upload.
+- Markdown report generation and download.
 - Archive workflow through `DELETE /documents/{id}` and the UI danger zone.
+- JWT-ready local auth (PBKDF2-SHA256 passwords, HS256 tokens, `GET /auth/me` validation).
+- Optional cloud AI: `ClaudeProvider` and `OpenAIProvider` fully wired; select via `ANALYSIS_PROVIDER`.
+- Dashboard AI mode badge (`GET /provider`) and storage backend badge (`GET /runtime`).
+- `DocumentRepository` abstraction — JSON default; PostgreSQL CRUD (create/list/get/delete) implemented.
 - API resilience in the frontend so failed backend calls return controlled empty states instead of a framework overlay.
 
 ## Container runtime
@@ -236,4 +253,11 @@ The frontend uses `NEXT_PUBLIC_API_URL=/api` in the browser and `INTERNAL_API_UR
 
 ## Operational readiness
 
-The backend exposes `/health` for uptime checks and `/metrics` for a compact local observability snapshot. Today the metrics are computed from the local JSON store; after deployment they can feed cloud logs, dashboards, or alerting without changing the product workflow.
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | Uptime check — returns `{"status": "ok"}` |
+| `GET /metrics` | Compact observability snapshot — document counts, risk totals, activity events |
+| `GET /provider` | Active AI provider name, model, and whether cloud is enabled — never exposes API keys |
+| `GET /runtime` | Active storage backend and database reachability — never exposes `DATABASE_URL` |
+
+`/metrics` is computed from the active repository, so it works identically whether `STORAGE_BACKEND=json` or `postgres`. After deployment these endpoints can feed cloud dashboards or alerting without changing the product workflow.
