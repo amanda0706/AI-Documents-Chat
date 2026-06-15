@@ -420,6 +420,19 @@ After cloning the repository on a new machine:
 5. Upload the files from `samples/`
 6. Confirm that backend tests pass with `python -m pytest backend/tests`
 
+### Runtime data
+
+`backend/data/` holds runtime-only state that is **not committed to git**:
+
+| File / directory | Created by | gitignored |
+|---|---|---|
+| `backend/data/documents.json` | `store.py` on first request | yes |
+| `backend/data/users.json` | `auth_store.py` on first register | yes |
+| `backend/data/embeddings.json` | `embeddings.py` on reindex | yes |
+| `backend/data/uploads/` | `store.py` on first upload | yes |
+
+The backend creates all of these automatically — no manual setup is needed after a fresh clone. `backend/data/.gitkeep` preserves the directory in the repository so the path exists on clone.
+
 ## Main API endpoints
 
 Full API reference with examples: [`docs/api.md`](docs/api.md).

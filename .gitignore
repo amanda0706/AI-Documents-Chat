@@ -6,8 +6,11 @@ node_modules/
 .next/
 .npm-cache/
 frontend/.env.local
-backend/data/uploads/
+backend/data/documents.json
+backend/data/documents.tmp
 backend/data/users.json
+backend/data/embeddings.json
+backend/data/uploads/
 # PostgreSQL local data (if using a bind-mount instead of a named Docker volume)
 pgdata/
 db/pgdata/
