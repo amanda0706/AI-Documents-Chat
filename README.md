@@ -49,7 +49,7 @@ LuminaClause is built to show practical full-stack product engineering, not just
 - backend API design with FastAPI and validated payloads,
 - local RAG-ready retrieval and source-grounded answers,
 - test coverage, CI, Docker runtime, API docs, and operational endpoints,
-- a clean migration path toward OpenAI/Azure OpenAI, PostgreSQL, pgvector, storage, and cloud deployment.
+- Claude and OpenAI providers fully wired; a clear migration path toward pgvector, object storage, and cloud deployment.
 
 Useful portfolio materials:
 
@@ -98,7 +98,7 @@ Users can generate and download a markdown report that is ready to share or conv
 
 ## Why the project is built this way
 
-The product is intentionally developed **without cloud AI first**. That keeps the core workflow testable end-to-end while the local analysis layer acts as a clean substitute for the future provider layer.
+The product defaults to **local-first operation** — no API key, no network calls, no document text leaves the machine. That keeps the core workflow testable end-to-end from a fresh clone. Cloud providers (Claude, OpenAI) are fully wired and activate via a single env var; the product workflow and API contracts do not change when you switch.
 
 Current local engine:
 
@@ -161,11 +161,11 @@ If a cloud provider is selected without its key the backend raises a clear error
 
 The app reads the provider choice from environment variables, so switching intelligence backends does not require changing any product code or API contract.
 
-Future provider layer:
+Still on the roadmap:
 
-- swap ``local_embed`` for real sentence embeddings (OpenAI, sentence-transformers) without endpoint changes,
-- PostgreSQL + pgvector (migration SQL documented in ``docs/architecture.md``),
-- object storage,
+- swap ``local_embed`` for real sentence embeddings (OpenAI, sentence-transformers) — no endpoint changes needed,
+- complete PostgreSQL repository (7 remaining operations) + pgvector,
+- object storage for uploaded files,
 - hosted deployment.
 
 ## Product shape
