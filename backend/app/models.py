@@ -204,6 +204,12 @@ class ProviderStatus(BaseModel):
     cloud_enabled: bool
 
 
+class StorageStatus(BaseModel):
+    storage_backend: str
+    storage_ready: bool
+    database_connected: bool | None = None
+
+
 # ---------------------------------------------------------------------------
 # Auth
 # ---------------------------------------------------------------------------

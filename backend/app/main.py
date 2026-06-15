@@ -30,6 +30,7 @@ from .models import (
     MetadataRequest,
     MetricsResponse,
     ProviderStatus,
+    StorageStatus,
     QuestionRequest,
     QuestionResponse,
     ReindexRequest,
@@ -98,6 +99,34 @@ def provider_status() -> ProviderStatus:
         model=model if name != "local" else "local",
         cloud_enabled=name != "local",
     )
+
+
+@app.get("/runtime", response_model=StorageStatus)
+def runtime_status() -> StorageStatus:
+    """Return the active storage backend and its readiness.
+
+    Never exposes DATABASE_URL, credentials, or secrets — only whether
+    the storage layer is reachable.
+    """
+    import os as _os
+    backend = _os.getenv("STORAGE_BACKEND", "json").strip().lower()
+    if backend != "postgres":
+        return StorageStatus(storage_backend="json", storage_ready=True, database_connected=None)
+    # Lightweight connectivity check — a single SELECT 1 on a fresh connection.
+    try:
+        import psycopg2  # noqa: PLC0415
+        url = _os.getenv("DATABASE_URL", "").strip()
+        if not url:
+            return StorageStatus(storage_backend="postgres", storage_ready=False, database_connected=False)
+        conn = psycopg2.connect(url)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+        finally:
+            conn.close()
+        return StorageStatus(storage_backend="postgres", storage_ready=True, database_connected=True)
+    except Exception:
+        return StorageStatus(storage_backend="postgres", storage_ready=False, database_connected=False)
 
 
 @app.get("/dashboard", response_model=DashboardStats)

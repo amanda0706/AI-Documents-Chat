@@ -134,6 +134,12 @@ export type ProviderStatus = {
   cloud_enabled: boolean;
 };
 
+export type StorageStatus = {
+  storage_backend: "json" | "postgres" | "unavailable";
+  storage_ready: boolean;
+  database_connected: boolean | null;
+};
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------

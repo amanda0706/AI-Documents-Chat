@@ -203,6 +203,56 @@ def test_provider_endpoint_local_mode_reports_not_cloud(client: TestClient) -> N
     assert payload["cloud_enabled"] is False
 
 
+def test_runtime_endpoint_json_backend(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("STORAGE_BACKEND", raising=False)
+
+    response = client.get("/runtime")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["storage_backend"] == "json"
+    assert payload["storage_ready"] is True
+    assert payload["database_connected"] is None
+
+
+def test_runtime_endpoint_postgres_no_url(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("STORAGE_BACKEND", "postgres")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    response = client.get("/runtime")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["storage_backend"] == "postgres"
+    assert payload["storage_ready"] is False
+    assert payload["database_connected"] is False
+
+
+def test_runtime_endpoint_postgres_unreachable(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("STORAGE_BACKEND", "postgres")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://x:x@localhost:19999/nodb")
+
+    response = client.get("/runtime")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["storage_backend"] == "postgres"
+    assert payload["storage_ready"] is False
+    assert payload["database_connected"] is False
+
+
+def test_runtime_endpoint_never_exposes_database_url(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("STORAGE_BACKEND", "postgres")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://secret_user:secret_pass@db:5432/prod")
+
+    response = client.get("/runtime")
+
+    body = str(response.json())
+    assert "secret_user" not in body
+    assert "secret_pass" not in body
+    assert "DATABASE_URL" not in body
+
+
 def test_metrics_endpoint_reports_operational_snapshot(client: TestClient) -> None:
     document = upload_contract(client, "metrics-contract.txt")
     client.post(f"/documents/{document['id']}/comments", json={"author": "qa@example.com", "body": "Looks risky."})

@@ -1,5 +1,5 @@
 import { Dashboard } from "@/components/dashboard";
-import { fetchDashboard, fetchDeadlines, fetchDocuments, fetchProviderStatus } from "@/lib/api";
+import { fetchDashboard, fetchDeadlines, fetchDocuments, fetchProviderStatus, fetchStorageStatus } from "@/lib/api";
 import type { DeadlineItem, DocumentItem } from "@/lib/types";
 
 const demoDocuments: DocumentItem[] = [
@@ -159,11 +159,12 @@ const demoDeadlines: DeadlineItem[] = [
 ];
 
 export default async function Home() {
-  const [documents, stats, deadlines, providerStatus] = await Promise.all([
+  const [documents, stats, deadlines, providerStatus, storageStatus] = await Promise.all([
     fetchDocuments(),
     fetchDashboard(),
     fetchDeadlines(),
     fetchProviderStatus(),
+    fetchStorageStatus(),
   ]);
   return (
     <Dashboard
@@ -172,6 +173,7 @@ export default async function Home() {
       demoDocuments={demoDocuments}
       deadlines={documents.length ? deadlines : demoDeadlines}
       providerStatus={providerStatus}
+      storageStatus={storageStatus}
     />
   );
 }

@@ -58,6 +58,37 @@ Returns an operational snapshot for local monitoring and future production obser
 }
 ```
 
+### `GET /provider`
+
+Returns the active AI analysis provider.  Never exposes API keys or secrets.
+
+```json
+{ "provider": "local", "model": "local", "cloud_enabled": false }
+```
+
+| `provider` | meaning |
+|---|---|
+| `local` | on-device heuristics, no key required |
+| `claude` | Anthropic Claude via `ANTHROPIC_API_KEY` |
+| `openai` | OpenAI ChatGPT via `OPENAI_API_KEY` |
+
+### `GET /runtime`
+
+Returns the active storage backend and its readiness.  Never exposes `DATABASE_URL`, passwords, or any credentials.
+
+```json
+{ "storage_backend": "json", "storage_ready": true, "database_connected": null }
+```
+
+| `storage_backend` | `database_connected` | meaning |
+|---|---|---|
+| `json` | `null` | local JSON file, always ready |
+| `postgres` | `true` | PostgreSQL reachable |
+| `postgres` | `false` | PostgreSQL configured but unreachable |
+
+The endpoint performs a lightweight `SELECT 1` ping only when `STORAGE_BACKEND=postgres`.
+No check runs for the `json` backend, so there is no overhead on the default path.
+
 ## Documents
 
 ### `GET /documents`

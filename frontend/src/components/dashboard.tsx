@@ -31,6 +31,7 @@ import type {
   ReviewStatus,
   RiskItem,
   RiskSeverity,
+  StorageStatus,
 } from "@/lib/types";
 
 type DashboardProps = {
@@ -39,6 +40,7 @@ type DashboardProps = {
   demoDocuments: DocumentItem[];
   deadlines: DeadlineItem[];
   providerStatus: ProviderStatus;
+  storageStatus: StorageStatus;
 };
 
 type View = "overview" | "document" | "compare" | "suggestions";
@@ -81,7 +83,7 @@ const riskMarkers: Record<string, string[]> = {
   confidentiality: ["confidentiality", "confidential information", "non-disclosure"],
 };
 
-export function Dashboard({ documents, stats, demoDocuments, deadlines, providerStatus }: DashboardProps) {
+export function Dashboard({ documents, stats, demoDocuments, deadlines, providerStatus, storageStatus }: DashboardProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<AuthMode>("login");
@@ -958,6 +960,8 @@ ${passageLines}`,
         <aside className="rounded-[28px] bg-white p-5 shadow-panel">
           <div className="mb-3 text-2xl font-semibold tracking-tight">LuminaClause</div>
           <AiProviderBadge status={providerStatus} />
+          <div className="mt-1.5" />
+          <StorageBackendBadge status={storageStatus} />
           <div className="mb-5" />
           <div className="mb-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{email}</div>
           <button onClick={signOut} className="mb-5 w-full rounded-2xl border border-line px-4 py-3 text-sm font-medium text-slate-600">Sign out</button>
@@ -1731,6 +1735,49 @@ function AiProviderBadge({ status }: { status: ProviderStatus }) {
       title={status.cloud_enabled ? `Model: ${status.model}` : "Running fully on-device"}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${status.cloud_enabled ? "bg-violet-500" : "bg-slate-400"}`} />
+      {label}
+    </div>
+  );
+}
+
+const storageBadgeStyles: Record<string, string> = {
+  json:        "bg-slate-100 text-slate-600",
+  postgres:    "bg-sky-100 text-sky-700",
+  unavailable: "bg-amber-50 text-amber-600",
+};
+
+const storageLabels: Record<string, string> = {
+  json:        "Storage: JSON",
+  postgres:    "Storage: Postgres",
+  unavailable: "Storage: unavailable",
+};
+
+function StorageBackendBadge({ status }: { status: StorageStatus }) {
+  const key = status.storage_backend in storageBadgeStyles ? status.storage_backend : "unavailable";
+  const label = storageLabels[key] ?? "Storage: unavailable";
+  const style = storageBadgeStyles[key];
+  const dot =
+    key === "postgres"
+      ? status.storage_ready
+        ? "bg-sky-500"
+        : "bg-amber-400"
+      : key === "json"
+      ? "bg-slate-400"
+      : "bg-amber-400";
+  const title =
+    key === "postgres"
+      ? status.storage_ready
+        ? "PostgreSQL connected"
+        : "PostgreSQL unreachable"
+      : key === "json"
+      ? "Local JSON file storage"
+      : "Storage backend unavailable";
+  return (
+    <div
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${style}`}
+      title={title}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
       {label}
     </div>
   );

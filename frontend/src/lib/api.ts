@@ -10,6 +10,7 @@ import type {
   ReportResult,
   RetrievalResult,
   ReviewStatus,
+  StorageStatus,
   UserPublic,
 } from "./types";
 
@@ -33,6 +34,14 @@ export async function fetchProviderStatus(): Promise<ProviderStatus> {
     provider: "unavailable",
     model: "unavailable",
     cloud_enabled: false,
+  });
+}
+
+export async function fetchStorageStatus(): Promise<StorageStatus> {
+  return requestJson(() => fetch(`${API_URL}/runtime`, { cache: "no-store" }), {
+    storage_backend: "unavailable",
+    storage_ready: false,
+    database_connected: null,
   });
 }
 
