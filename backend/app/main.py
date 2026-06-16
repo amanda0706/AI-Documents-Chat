@@ -30,6 +30,7 @@ from .models import (
     LoginRequest,
     MetadataRequest,
     MetricsResponse,
+    ProcessingInfo,
     ProviderStatus,
     StorageStatus,
     QuestionRequest,
@@ -172,6 +173,38 @@ def document(doc_id: str):
     if not item:
         raise HTTPException(status_code=404, detail="Document not found")
     return item
+
+
+@app.get("/documents/{doc_id}/processing", response_model=ProcessingInfo)
+def document_processing_info(doc_id: str) -> ProcessingInfo:
+    """Return safe ingestion metadata computed from stored fragments.
+
+    Never exposes file paths, env values, credentials, or runtime internals —
+    only statistics derived from the document's fragment list.
+    """
+    item = repo.get_document(doc_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Document not found")
+    lengths = [len(f.text) for f in item.fragments]
+    fragment_count = len(lengths)
+    avg_len = round(sum(lengths) / fragment_count) if lengths else 0
+    max_len = max(lengths) if lengths else 0
+    if fragment_count <= 1:
+        strategy = "single fragment"
+    elif fragment_count > item.page_count:
+        strategy = "paragraph-aware"
+    else:
+        strategy = "per-page"
+    return ProcessingInfo(
+        extraction_method=item.extraction_method,
+        ocr_applied=item.ocr_applied,
+        page_count=item.page_count,
+        fragment_count=fragment_count,
+        avg_fragment_length=avg_len,
+        max_fragment_length=max_len,
+        cleaning_applied=True,
+        chunking_strategy=strategy,
+    )
 
 
 @app.delete("/documents/{doc_id}")

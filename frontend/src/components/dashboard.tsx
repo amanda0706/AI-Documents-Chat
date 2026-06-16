@@ -9,6 +9,7 @@ import {
   authRegister,
   compareDocuments,
   deleteDocument,
+  fetchProcessingInfo,
   fetchReport,
   retrieveDocumentContext,
   saveDocumentMetadata,
@@ -25,6 +26,7 @@ import type {
   DeadlineItem,
   DocumentItem,
   MetadataDraft,
+  ProcessingInfo,
   ProviderStatus,
   ReportResult,
   RetrievalResult,
@@ -117,6 +119,15 @@ export function Dashboard({ documents, stats, demoDocuments, deadlines, provider
   const [notice, setNotice] = useState<Notice | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [isDraggingUpload, setIsDraggingUpload] = useState(false);
+  const [processingInfo, setProcessingInfo] = useState<ProcessingInfo | null>(null);
+
+  useEffect(() => {
+    if (selectedId) {
+      fetchProcessingInfo(selectedId).then(setProcessingInfo);
+    } else {
+      setProcessingInfo(null);
+    }
+  }, [selectedId]);
 
   useEffect(() => {
     // On load: try to restore session from a stored JWT first.
@@ -1097,6 +1108,7 @@ ${passageLines}`,
                 setCitations([]);
               }}
               archiveDocument={archiveDocument}
+              processingInfo={processingInfo}
             />
           )}
           {view === "compare" && selected && (
@@ -1300,6 +1312,7 @@ function DocumentWorkspace(props: {
   setStatusFilter: (value: StatusFilter) => void;
   clearMessages: () => void;
   archiveDocument: () => void;
+  processingInfo: ProcessingInfo | null;
 }) {
   const { selected } = props;
   return (
@@ -1334,6 +1347,32 @@ function DocumentWorkspace(props: {
       <aside className="space-y-5">
         <Panel title="AI Summary">
           <p className="leading-7 text-slate-700">{selected.summary.summary}</p>
+        </Panel>
+        <Panel title="Processing details">
+          {props.processingInfo ? (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <dt className="text-slate-500">Extraction</dt>
+              <dd className="text-right font-medium">{props.processingInfo.ocr_applied ? "OCR" : "Native text"}</dd>
+              <dt className="text-slate-500">Pages</dt>
+              <dd className="text-right font-medium">{props.processingInfo.page_count}</dd>
+              <dt className="text-slate-500">Fragments</dt>
+              <dd className="text-right font-medium">{props.processingInfo.fragment_count}</dd>
+              <dt className="text-slate-500">Avg chunk</dt>
+              <dd className="text-right font-medium">{props.processingInfo.avg_fragment_length.toLocaleString()} chars</dd>
+              <dt className="text-slate-500">Max chunk</dt>
+              <dd className="text-right font-medium">{props.processingInfo.max_fragment_length.toLocaleString()} chars</dd>
+              <dt className="text-slate-500">Chunking</dt>
+              <dd className="text-right font-medium capitalize">{props.processingInfo.chunking_strategy}</dd>
+              <dt className="text-slate-500">Cleaning</dt>
+              <dd className="text-right font-medium text-emerald-600">{props.processingInfo.cleaning_applied ? "Applied" : "None"}</dd>
+            </dl>
+          ) : (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-4 animate-pulse rounded bg-slate-100" />
+              ))}
+            </div>
+          )}
         </Panel>
         <Panel title="Semantic retrieval">
           <p className="mb-3 text-sm leading-6 text-slate-500">Local RAG-style context search. Later this can be swapped for embeddings + pgvector.</p>

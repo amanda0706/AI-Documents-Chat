@@ -267,3 +267,89 @@ def test_metrics_endpoint_reports_operational_snapshot(client: TestClient) -> No
     assert payload["comments_count"] == 1
     assert payload["activity_events"] >= 2
     assert payload["latest_upload_filename"] == "metrics-contract.txt"
+
+
+# ---------------------------------------------------------------------------
+# Processing-info endpoint
+# ---------------------------------------------------------------------------
+
+def test_processing_endpoint_returns_200(client: TestClient) -> None:
+    document = upload_contract(client)
+    response = client.get(f"/documents/{document['id']}/processing")
+    assert response.status_code == 200
+
+
+def test_processing_endpoint_has_required_fields(client: TestClient) -> None:
+    document = upload_contract(client)
+    payload = client.get(f"/documents/{document['id']}/processing").json()
+    for field in (
+        "extraction_method", "ocr_applied", "page_count",
+        "fragment_count", "avg_fragment_length", "max_fragment_length",
+        "cleaning_applied", "chunking_strategy",
+    ):
+        assert field in payload, f"missing field: {field}"
+
+
+def test_processing_endpoint_fragment_count_matches_document(client: TestClient) -> None:
+    document = upload_contract(client)
+    expected = len(document["fragments"])
+    payload = client.get(f"/documents/{document['id']}/processing").json()
+    assert payload["fragment_count"] == expected
+
+
+def test_processing_endpoint_page_count_matches_document(client: TestClient) -> None:
+    document = upload_contract(client)
+    payload = client.get(f"/documents/{document['id']}/processing").json()
+    assert payload["page_count"] == document["page_count"]
+
+
+def test_processing_endpoint_cleaning_always_true(client: TestClient) -> None:
+    document = upload_contract(client)
+    payload = client.get(f"/documents/{document['id']}/processing").json()
+    assert payload["cleaning_applied"] is True
+
+
+def test_processing_endpoint_extraction_method_valid(client: TestClient) -> None:
+    document = upload_contract(client)
+    payload = client.get(f"/documents/{document['id']}/processing").json()
+    assert payload["extraction_method"] in ("text", "ocr")
+
+
+def test_processing_endpoint_avg_lte_max_length(client: TestClient) -> None:
+    document = upload_contract(client)
+    payload = client.get(f"/documents/{document['id']}/processing").json()
+    assert payload["avg_fragment_length"] <= payload["max_fragment_length"]
+
+
+def test_processing_endpoint_chunking_strategy_valid(client: TestClient) -> None:
+    document = upload_contract(client)
+    payload = client.get(f"/documents/{document['id']}/processing").json()
+    assert payload["chunking_strategy"] in ("single fragment", "per-page", "paragraph-aware")
+
+
+def test_processing_endpoint_404_for_unknown_document(client: TestClient) -> None:
+    response = client.get("/documents/nonexistent-id/processing")
+    assert response.status_code == 404
+
+
+def test_processing_endpoint_never_exposes_internal_paths(client: TestClient) -> None:
+    document = upload_contract(client)
+    body = client.get(f"/documents/{document['id']}/processing").text
+    assert "backend" not in body.lower()
+    assert "data/" not in body
+    assert "\\" not in body
+    assert "DATABASE_URL" not in body
+    assert "UPLOADS" not in body
+
+
+def test_processing_endpoint_legacy_single_fragment_strategy(client: TestClient) -> None:
+    # Short document — the chunker returns exactly 1 fragment; strategy = "single fragment"
+    response = client.post(
+        "/documents/upload",
+        files={"file": ("letter.txt", b"This letter confirms intent to negotiate.")},
+    )
+    assert response.status_code == 200
+    document = response.json()
+    payload = client.get(f"/documents/{document['id']}/processing").json()
+    assert payload["fragment_count"] >= 1
+    assert payload["chunking_strategy"] in ("single fragment", "per-page", "paragraph-aware")

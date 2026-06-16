@@ -210,6 +210,17 @@ class StorageStatus(BaseModel):
     database_connected: bool | None = None
 
 
+class ProcessingInfo(BaseModel):
+    extraction_method: str
+    ocr_applied: bool
+    page_count: int
+    fragment_count: int
+    avg_fragment_length: int
+    max_fragment_length: int
+    cleaning_applied: bool
+    chunking_strategy: str
+
+
 # ---------------------------------------------------------------------------
 # Auth
 # ---------------------------------------------------------------------------

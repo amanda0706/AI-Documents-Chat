@@ -5,6 +5,7 @@ import type {
   DeadlineItem,
   DocumentItem,
   MetadataDraft,
+  ProcessingInfo,
   ProviderStatus,
   QuestionResult,
   ReportResult,
@@ -253,6 +254,13 @@ export async function saveDocumentMetadata(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(metadata),
     }),
+    null,
+  );
+}
+
+export async function fetchProcessingInfo(documentId: string): Promise<ProcessingInfo | null> {
+  return requestJson(
+    () => fetch(`${API_URL}/documents/${documentId}/processing`, { cache: "no-store" }),
     null,
   );
 }

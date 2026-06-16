@@ -140,6 +140,17 @@ export type StorageStatus = {
   database_connected: boolean | null;
 };
 
+export type ProcessingInfo = {
+  extraction_method: string;
+  ocr_applied: boolean;
+  page_count: number;
+  fragment_count: number;
+  avg_fragment_length: number;
+  max_fragment_length: number;
+  cleaning_applied: boolean;
+  chunking_strategy: string;
+};
+
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
