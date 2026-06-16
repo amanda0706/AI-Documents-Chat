@@ -15,6 +15,7 @@ from fastapi.responses import StreamingResponse
 # load_dotenv is a no-op when the file does not exist.
 load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=True)
 from .analyzer import similarity_score
+from .chunker import chunk_pages as _chunk_pages
 from .extraction import extract_pdf_pages
 from .models import (
     ActivityItem,
@@ -194,11 +195,12 @@ async def bulk_upload_documents(files: list[UploadFile] = File(...), owner: str 
 
 async def process_upload(file: UploadFile, owner: str = ""):
     original_filename = sanitize_upload_filename(file.filename or "document.txt")
-    page_texts, extraction_method = await read_upload_pages(file, original_filename)
+    page_texts, chunk_page_nums, extraction_method = await read_upload_pages(file, original_filename)
     all_text = "\n".join(page_texts)
     summary = provider.summarize_document(original_filename, all_text)
     return repo.create_document(
         original_filename, page_texts, summary,
+        chunk_pages=chunk_page_nums,
         extraction_method=extraction_method, owner=owner,
     )
 
@@ -213,7 +215,9 @@ def sanitize_upload_filename(filename: str) -> str:
     return safe[:120]
 
 
-async def read_upload_pages(file: UploadFile, safe_filename: str) -> tuple[list[str], str]:
+async def read_upload_pages(
+    file: UploadFile, safe_filename: str
+) -> tuple[list[str], list[int], str]:
     raw = await file.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
@@ -226,19 +230,24 @@ async def read_upload_pages(file: UploadFile, safe_filename: str) -> tuple[list[
 
     if Path(safe_filename).suffix.lower() == ".pdf":
         extraction = extract_pdf_pages(temp_path)
-        page_texts = [page.strip() for page in extraction.page_texts if page.strip()]
+        raw_pages = [page.strip() for page in extraction.page_texts if page.strip()]
         extraction_method = extraction.method
     else:
-        raw_text = temp_path.read_text(encoding="utf-8").strip()
-        # Split TXT files into paragraph-level fragments (blank-line delimited).
-        # Each section with at least 40 characters becomes its own fragment,
-        # giving the local similarity search and Claude meaningful units to rank.
-        paragraphs = [p.strip() for p in raw_text.split("\n\n") if len(p.strip()) >= 40]
-        page_texts = paragraphs if paragraphs else [raw_text]
+        # Read with errors="replace" so mojibake bytes never crash ingestion.
+        raw_text = temp_path.read_text(encoding="utf-8", errors="replace").strip()
+        raw_pages = [raw_text] if raw_text else []
         extraction_method = "text"
-    if not any(page_texts):
+
+    if not any(raw_pages):
         raise HTTPException(status_code=400, detail="No readable text found in uploaded document")
-    return page_texts, extraction_method
+
+    # Clean, de-duplicate headers/footers, and split into bounded chunks.
+    chunk_texts, chunk_page_nums = _chunk_pages(raw_pages)
+
+    if not chunk_texts:
+        raise HTTPException(status_code=400, detail="No readable text found in uploaded document")
+
+    return chunk_texts, chunk_page_nums, extraction_method
 
 
 @app.post("/documents/{doc_id}/versions")
@@ -246,12 +255,13 @@ async def upload_document_version(doc_id: str, file: UploadFile = File(...)):
     if not repo.get_document(doc_id):
         raise HTTPException(status_code=404, detail="Document not found")
     original_filename = sanitize_upload_filename(file.filename or "document.txt")
-    page_texts, extraction_method = await read_upload_pages(file, original_filename)
+    page_texts, chunk_page_nums, extraction_method = await read_upload_pages(file, original_filename)
     all_text = "\n".join(page_texts)
     summary = provider.summarize_document(original_filename, all_text)
     created = repo.create_document_version(
         doc_id, original_filename, page_texts, summary,
         extraction_method=extraction_method,
+        chunk_pages=chunk_page_nums,
     )
     if not created:
         raise HTTPException(status_code=404, detail="Document not found")

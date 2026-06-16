@@ -1,0 +1,43 @@
+PROFESSIONAL SERVICES AGREEMENT
+
+This Professional Services Agreement ("Agreement") is entered into as of January 1, 2025, between Acme Corp, a Delaware corporation ("Service Provider"), and Client LLC, a New York limited liability company ("Client").
+
+1. Services
+
+Service Provider agrees to provide professional consulting and software development services as described in the applicable Statement of Work ("SOW"). Each SOW shall be mutually agreed in writing and incorporated by reference into this Agreement. Service Provider shall perform the services in a professional and workmanlike manner consistent with industry standards.
+
+2. Compensation and Payment
+
+Client shall pay Service Provider the fees set forth in each SOW. All undisputed invoices are due and payable within net 60 days of the invoice date. Amounts not paid when due shall bear interest at the rate of one and one-half percent (1.5%) per month. Client shall reimburse Service Provider for all reasonable pre-approved expenses incurred in connection with the services.
+
+3. Term and Termination
+
+This Agreement commences on the Effective Date and continues for one (1) year unless earlier terminated. Either party may terminate this Agreement upon ninety (90) days written notice to the other party. Service Provider may terminate immediately upon Client's material breach of the payment obligations. Upon termination, Client shall pay for all services rendered up to the termination date.
+
+4. Limitation of Liability
+
+IN NO EVENT SHALL EITHER PARTY BE LIABLE TO THE OTHER FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL OR EXEMPLARY DAMAGES ARISING OUT OF OR RELATED TO THIS AGREEMENT, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. THE TOTAL AGGREGATE LIABILITY OF EITHER PARTY ARISING OUT OF OR RELATED TO THIS AGREEMENT SHALL NOT EXCEED THE TOTAL FEES PAID OR PAYABLE BY CLIENT TO SERVICE PROVIDER IN THE THREE (3) MONTHS IMMEDIATELY PRECEDING THE EVENT GIVING RISE TO THE CLAIM.
+
+5. Confidentiality
+
+Each party agrees to maintain in strict confidence the other party's confidential information and proprietary information, trade secrets, and technical data. Neither party shall disclose such information to any third party without the prior written consent of the disclosing party. This confidentiality obligation shall survive termination of this Agreement for a period of five (5) years.
+
+6. Intellectual Property
+
+All work product, deliverables, and intellectual property created by Service Provider specifically for Client under this Agreement shall be considered work for hire and shall be owned by Client upon full payment of all fees. Service Provider retains all right, title, and interest in its pre-existing tools, methodologies, and background IP.
+
+7. Indemnification
+
+Each party shall indemnify, defend, and hold harmless the other party from and against any third-party claims, damages, losses, and expenses (including reasonable attorneys' fees) arising out of or resulting from the indemnifying party's gross negligence, willful misconduct, or material breach of this Agreement.
+
+8. Governing Law
+
+This Agreement shall be governed by and construed in accordance with the laws of the State of Delaware, without regard to its conflict of laws provisions. Any disputes arising under this Agreement shall be submitted to binding arbitration in accordance with the rules of the American Arbitration Association.
+
+9. Force Majeure
+
+Neither party shall be liable for any delay or failure in performance resulting from causes beyond such party's reasonable control, including acts of God, natural disasters, war, civil unrest, government actions, or failures of third-party infrastructure providers.
+
+10. General Provisions
+
+This Agreement constitutes the entire agreement between the parties with respect to its subject matter. It may not be amended except by a written instrument signed by both parties. If any provision of this Agreement is found unenforceable, the remaining provisions shall remain in full force and effect. The failure of either party to enforce any provision shall not constitute a waiver of that party's rights.

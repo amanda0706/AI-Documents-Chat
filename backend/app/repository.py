@@ -79,6 +79,7 @@ class DocumentRepository(Protocol):
         version_group_id: str | None = None,
         extraction_method: str = "text",
         owner: str = "",
+        chunk_pages: list[int] | None = None,
     ) -> DocumentDetail:
         """Persist a new document and return it."""
         ...
@@ -90,6 +91,7 @@ class DocumentRepository(Protocol):
         page_texts: list[str],
         summary: DocumentSummary,
         extraction_method: str = "text",
+        chunk_pages: list[int] | None = None,
     ) -> DocumentDetail | None:
         """
         Create a new version of an existing document's version group.
@@ -174,6 +176,7 @@ class JsonDocumentRepository:
         version_group_id: str | None = None,
         extraction_method: str = "text",
         owner: str = "",
+        chunk_pages: list[int] | None = None,
     ) -> DocumentDetail:
         return _store.create_document(
             filename,
@@ -182,6 +185,7 @@ class JsonDocumentRepository:
             version_group_id=version_group_id,
             extraction_method=extraction_method,
             owner=owner,
+            chunk_pages=chunk_pages,
         )
 
     def create_document_version(
@@ -191,6 +195,7 @@ class JsonDocumentRepository:
         page_texts: list[str],
         summary: DocumentSummary,
         extraction_method: str = "text",
+        chunk_pages: list[int] | None = None,
     ) -> DocumentDetail | None:
         return _store.create_document_version(
             source_doc_id,
@@ -198,6 +203,7 @@ class JsonDocumentRepository:
             page_texts,
             summary,
             extraction_method=extraction_method,
+            chunk_pages=chunk_pages,
         )
 
     def list_document_versions(self, doc_id: str) -> list[DocumentDetail]:
@@ -308,6 +314,7 @@ class PostgresDocumentRepository:
         version_group_id: str | None = None,
         extraction_method: str = "text",
         owner: str = "",
+        chunk_pages: list[int] | None = None,
     ) -> DocumentDetail:
         return _store_pg.create_document(
             filename,
@@ -316,6 +323,7 @@ class PostgresDocumentRepository:
             version_group_id=version_group_id,
             extraction_method=extraction_method,
             owner=owner,
+            chunk_pages=chunk_pages,
         )
 
     def delete_document(self, doc_id: str) -> bool:

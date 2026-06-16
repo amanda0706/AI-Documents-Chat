@@ -1,0 +1,38 @@
+SERVICES   AGREEMENT
+CONFIDENTIAL   DRAFT
+
+SERVICES   AGREEMENT
+CONFIDENTIAL   DRAFT
+
+1.  Services
+The  Company  shall   provide  the  following   services  to  Client under   this agreement:
+   a)  Software development  and   maintenance services
+   b)   Technical support,   consultation,  and  training
+   c) Project management and   coordination
+   d)    Documentation and   reporting
+
+2.Payment   Terms
+Invoices shall   be  due  within  net 60  days of receipt. Late  payments   shall accrue  interest
+at  the  rate   of  1.5%   per month. Client  shall   pay all  undisputed   amounts  promptly.
+
+3.  Confidentiality
+Each party agrees  to  maintain   the  confidentiality of  the  other  party's confidential
+information,  trade  secrets  and  proprietary   information.  This obligation  shall  survive
+termination  of   this   agreement  for  a period  of  five (5)  years.
+
+4.Termination
+Either   party  may   terminate  this agreement  upon  ninety (90)   days written notice  to the
+other party.  Service  Provider  may  terminate   immediately   upon  Client's material   breach.
+
+5.   Limitation of  Liability
+IN   NO  EVENT   SHALL EITHER  PARTY   BE LIABLE   FOR INDIRECT, INCIDENTAL, CONSEQUENTIAL,
+SPECIAL   OR  EXEMPLARY   DAMAGES.  THE  TOTAL  LIABILITY  OF  EITHER  PARTY   SHALL  NOT
+EXCEED   THE   FEES  PAID   IN THE  PRECEDING THREE   MONTHS.
+
+6. Governing Law
+This  agreement   shall  be  governed   by  the   laws   of  the  applicable  jurisdiction.
+Any  disputes   shall   be  resolved   through  binding arbitration.
+
+7.  Indemnification
+Client  shall   indemnify,  defend   and  hold  harmless   Service  Provider   from  and against
+any  claims,  damages,  losses  and  expenses   arising  from   Client's  use  of   the services.

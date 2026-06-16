@@ -236,6 +236,7 @@ def create_document(
     version_group_id: str | None = None,
     extraction_method: str = "text",
     owner: str = "",
+    chunk_pages: list[int] | None = None,
 ) -> DocumentDetail:
     """
     Persist a new document with its fragments and an initial upload activity.
@@ -312,19 +313,20 @@ def create_document(
             )
 
             # --- insert fragments --------------------------------------------
+            page_numbers = chunk_pages if chunk_pages else list(range(1, len(page_texts) + 1))
+            pairs = [(text, pg) for text, pg in zip(page_texts, page_numbers) if text.strip()]
             built_fragments: list[DocumentFragment] = []
-            for index, text in enumerate(page_texts):
-                if text.strip():
-                    frag_id = f"{doc_id}-{index}"
-                    cur.execute(
-                        "INSERT INTO document_fragments"
-                        "    (id, document_id, page, text)"
-                        " VALUES (%s, %s, %s, %s)",
-                        (frag_id, doc_id, index + 1, text),
-                    )
-                    built_fragments.append(
-                        DocumentFragment(id=frag_id, page=index + 1, text=text)
-                    )
+            for index, (text, pg) in enumerate(pairs):
+                frag_id = f"{doc_id}-{index}"
+                cur.execute(
+                    "INSERT INTO document_fragments"
+                    "    (id, document_id, page, text)"
+                    " VALUES (%s, %s, %s, %s)",
+                    (frag_id, doc_id, pg, text),
+                )
+                built_fragments.append(
+                    DocumentFragment(id=frag_id, page=pg, text=text)
+                )
 
             # --- insert upload activity -------------------------------------
             cur.execute(

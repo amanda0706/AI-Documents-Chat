@@ -36,48 +36,94 @@ class RankedSentence:
 RISK_RULES = [
     {
         "category": "payment",
-        "patterns": ("net 60", "net 90", "late fee", "within sixty", "within ninety"),
+        "patterns": (
+            "net 45", "net 60", "net 90",
+            "late fee", "within sixty", "within ninety",
+            "payment within 45", "payment within 60", "payment within 90",
+            "overdue interest", "interest on late", "accrues interest",
+        ),
         "severity": "medium",
-        "title": "Długi termin płatności",
-        "explanation": "Dłuższy termin płatności może pogorszyć płynność finansową.",
-        "recommendation": "Rozważ skrócenie terminu do 30 dni albo dodanie zaliczki.",
+        "title": "Extended payment terms",
+        "explanation": "Long payment windows hurt cash flow and increase collection risk.",
+        "recommendation": "Consider reducing to net 30 or adding an advance payment.",
         "score": 18,
     },
     {
         "category": "termination",
-        "patterns": ("90 days", "terminate for convenience", "written notice"),
+        "patterns": (
+            "90 days", "ninety days", "sixty days",
+            "terminate for convenience", "written notice",
+            "days' notice", "days notice", "termination for convenience",
+            "either party may terminate",
+        ),
         "severity": "medium",
-        "title": "Długi okres wypowiedzenia",
-        "explanation": "Długi okres wypowiedzenia ogranicza elastyczność zakończenia współpracy.",
-        "recommendation": "Rozważ skrócenie okresu wypowiedzenia lub dodanie wyjątków.",
+        "title": "Long notice or termination period",
+        "explanation": "A long notice period limits operational flexibility.",
+        "recommendation": "Consider a 30-day notice period or mutual termination rights.",
         "score": 16,
     },
     {
         "category": "liability",
-        "patterns": ("limitation of liability", "indirect damages", "consequential"),
+        "patterns": (
+            "limitation of liability", "indirect damages", "consequential",
+            "not be liable", "no liability", "excludes liability",
+            "total liability", "aggregate liability", "liability cap",
+            "incidental damages", "special damages", "in no event",
+        ),
         "severity": "high",
-        "title": "Ograniczona odpowiedzialność",
-        "explanation": "Szerokie wyłączenia odpowiedzialności mogą utrudnić dochodzenie roszczeń.",
-        "recommendation": "Doprecyzuj limity oraz wyjątki dla rażącego naruszenia i poufności.",
+        "title": "Liability limitation or exclusion",
+        "explanation": "Broad liability exclusions may limit your ability to recover losses.",
+        "recommendation": "Carve out fraud, wilful misconduct, and confidentiality breaches.",
         "score": 25,
     },
     {
         "category": "renewal",
-        "patterns": ("automatic renewal", "auto-renew", "renews automatically"),
+        "patterns": (
+            "automatic renewal", "auto-renew", "renews automatically",
+            "automatically renews", "unless cancelled", "unless terminated prior",
+            "unless notice is given", "shall automatically renew",
+        ),
         "severity": "medium",
-        "title": "Automatyczne odnowienie",
-        "explanation": "Automatyczne przedłużenie może tworzyć niechciane zobowiązania.",
-        "recommendation": "Dodaj przypomnienie i wyraźne okno rezygnacji przed odnowieniem.",
+        "title": "Automatic renewal clause",
+        "explanation": "Auto-renewal can create unexpected obligations.",
+        "recommendation": "Add a clear opt-out window and calendar reminders.",
         "score": 14,
     },
     {
         "category": "confidentiality",
-        "patterns": ("confidentiality", "confidential information", "non-disclosure"),
+        "patterns": (
+            "confidentiality", "confidential information", "non-disclosure",
+            "proprietary information", "trade secrets",
+        ),
         "severity": "low",
-        "title": "Szerokie obowiązki poufności",
-        "explanation": "Zakres poufności może być zbyt szeroki lub zbyt długi.",
-        "recommendation": "Sprawdź czas obowiązywania i wyłączenia dla informacji publicznych.",
+        "title": "Broad confidentiality obligations",
+        "explanation": "Confidentiality scope may be too wide or its duration too long.",
+        "recommendation": "Review the term, scope, and carve-outs for publicly available information.",
         "score": 10,
+    },
+    {
+        "category": "indemnification",
+        "patterns": (
+            "indemnify", "indemnification", "indemnified",
+            "hold harmless", "defend and hold", "indemnify and defend",
+        ),
+        "severity": "high",
+        "title": "Broad indemnification obligation",
+        "explanation": "Open-ended indemnification clauses can expose you to unlimited liability.",
+        "recommendation": "Limit to direct claims arising from your own breach and add a mutual obligation.",
+        "score": 20,
+    },
+    {
+        "category": "ip_assignment",
+        "patterns": (
+            "work for hire", "assigns all", "all intellectual property",
+            "sole and exclusive", "irrevocably assigns", "all right title and interest",
+        ),
+        "severity": "high",
+        "title": "Broad IP assignment",
+        "explanation": "Assigning all IP without limitation may transfer rights beyond the project scope.",
+        "recommendation": "Narrow the assignment to deliverables created under this agreement.",
+        "score": 22,
     },
 ]
 
@@ -86,36 +132,64 @@ CLAUSE_PLAYBOOK = [
         "category": "governing_law",
         "title": "Governing law",
         "signals": ("governing law", "laws of", "jurisdiction"),
-        "why_it_matters": "Określa, według jakiego prawa interpretowana jest umowa.",
+        "why_it_matters": "Establishes which country or state's law governs the agreement.",
         "expected_signal": "governing law / jurisdiction",
     },
     {
         "category": "confidentiality",
         "title": "Confidentiality",
         "signals": ("confidentiality", "confidential information", "non-disclosure"),
-        "why_it_matters": "Chroni informacje handlowe i dane przekazywane między stronami.",
+        "why_it_matters": "Protects commercially sensitive information shared between parties.",
         "expected_signal": "confidentiality / non-disclosure",
     },
     {
         "category": "termination",
         "title": "Termination",
         "signals": ("termination", "terminate", "written notice"),
-        "why_it_matters": "Definiuje, jak strony mogą zakończyć współpracę.",
+        "why_it_matters": "Defines how each party can exit the agreement.",
         "expected_signal": "termination / written notice",
     },
     {
         "category": "liability",
         "title": "Liability",
         "signals": ("liability", "indirect damages", "consequential damages"),
-        "why_it_matters": "Ustala ekspozycję finansową i granice odpowiedzialności.",
+        "why_it_matters": "Establishes financial exposure and liability limits.",
         "expected_signal": "liability / damages",
     },
     {
         "category": "payment",
         "title": "Payment terms",
-        "signals": ("payment terms", "invoice", "net 30", "net 60", "fees"),
-        "why_it_matters": "Określa przepływ pieniędzy i moment wymagalności płatności.",
+        "signals": ("payment terms", "invoice", "net 30", "net 60", "fees", "compensation"),
+        "why_it_matters": "Defines when and how payments are made.",
         "expected_signal": "payment terms / invoice",
+    },
+    {
+        "category": "force_majeure",
+        "title": "Force majeure",
+        "signals": ("force majeure", "act of god", "circumstances beyond", "beyond reasonable control"),
+        "why_it_matters": "Protects parties when performance is impossible due to unforeseeable events.",
+        "expected_signal": "force majeure / circumstances beyond control",
+    },
+    {
+        "category": "indemnification",
+        "title": "Indemnification",
+        "signals": ("indemnif", "hold harmless", "defend against"),
+        "why_it_matters": "Establishes who bears costs if a third party makes a claim.",
+        "expected_signal": "indemnification / hold harmless",
+    },
+    {
+        "category": "dispute_resolution",
+        "title": "Dispute resolution",
+        "signals": ("arbitration", "dispute resolution", "mediation", "escalation procedure"),
+        "why_it_matters": "Defines how disagreements are resolved, avoiding costly litigation.",
+        "expected_signal": "arbitration / dispute resolution",
+    },
+    {
+        "category": "ip_ownership",
+        "title": "IP ownership",
+        "signals": ("intellectual property", "work product", "deliverables", "proprietary rights"),
+        "why_it_matters": "Clarifies who owns the outputs of the engagement.",
+        "expected_signal": "intellectual property / work product",
     },
 ]
 
@@ -137,7 +211,9 @@ def keywords(text: str) -> Counter[str]:
 def summarize(text: str, limit: int = 4) -> list[str]:
     sentences = split_sentences(text)
     if not sentences:
-        return []
+        # Very short or structurally unusual document — return whatever text exists.
+        stripped = text.strip()
+        return [stripped[:500]] if stripped else []
 
     frequencies = keywords(text)
     ranked = []
@@ -181,25 +257,41 @@ def build_suggestions(risks: list[RiskItem]) -> list[SuggestionItem]:
     if "payment" in by_category:
         proposed.append(
             SuggestionItem(
-                title="Skróć termin płatności",
-                rationale="Poprawia płynność i zmniejsza ryzyko finansowania kontrahenta.",
+                title="Shorten payment terms",
+                rationale="Improves cash flow and reduces the risk of financing the counterparty.",
                 proposed_text="Payment terms shall be net 30 days from receipt of a valid invoice.",
             )
         )
     if "termination" in by_category:
         proposed.append(
             SuggestionItem(
-                title="Skróć okres wypowiedzenia",
-                rationale="Zwiększa elastyczność operacyjną obu stron.",
+                title="Shorten notice period",
+                rationale="Increases operational flexibility for both parties.",
                 proposed_text="Either party may terminate this agreement with 30 days written notice.",
             )
         )
     if "liability" in by_category:
         proposed.append(
             SuggestionItem(
-                title="Dodaj wyjątki do limitu odpowiedzialności",
-                rationale="Chroni przy naruszeniu poufności i umyślnym działaniu.",
+                title="Add carve-outs to liability cap",
+                rationale="Protects against uncapped exposure for fraud and confidentiality breaches.",
                 proposed_text="The liability cap shall not apply to fraud, wilful misconduct, or breach of confidentiality.",
+            )
+        )
+    if "indemnification" in by_category:
+        proposed.append(
+            SuggestionItem(
+                title="Narrow indemnification scope",
+                rationale="Limits exposure to claims directly caused by your own breach.",
+                proposed_text="Each party shall indemnify the other only for claims arising directly from its own material breach or gross negligence.",
+            )
+        )
+    if "ip_assignment" in by_category:
+        proposed.append(
+            SuggestionItem(
+                title="Scope IP assignment to deliverables",
+                rationale="Prevents inadvertent assignment of pre-existing IP or tools.",
+                proposed_text="IP assignment applies solely to work product created specifically under this agreement and does not extend to pre-existing materials.",
             )
         )
     return proposed

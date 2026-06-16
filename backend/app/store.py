@@ -38,6 +38,7 @@ def create_document(
     version_group_id: str | None = None,
     extraction_method: str = "text",
     owner: str = "",
+    chunk_pages: list[int] | None = None,
 ) -> DocumentDetail:
     documents = load_all()
     doc_id = str(uuid4())
@@ -50,10 +51,11 @@ def create_document(
     version_number = len(previous_versions) + 1
     for payload in previous_versions:
         payload["is_latest_version"] = False
+    page_numbers = chunk_pages if chunk_pages else list(range(1, len(page_texts) + 1))
+    pairs = [(text, pg) for text, pg in zip(page_texts, page_numbers) if text.strip()]
     fragments = [
-        DocumentFragment(id=f"{doc_id}-{index}", page=index + 1, text=text)
-        for index, text in enumerate(page_texts)
-        if text.strip()
+        DocumentFragment(id=f"{doc_id}-{index}", page=pg, text=text)
+        for index, (text, pg) in enumerate(pairs)
     ]
     detail = DocumentDetail(
         id=doc_id,
@@ -94,6 +96,7 @@ def create_document_version(
     page_texts: list[str],
     summary: DocumentSummary,
     extraction_method: str = "text",
+    chunk_pages: list[int] | None = None,
 ) -> DocumentDetail | None:
     source = get_document(source_doc_id)
     if not source:
@@ -105,6 +108,7 @@ def create_document_version(
         version_group_id=source.version_group_id or source.id,
         extraction_method=extraction_method,
         owner=source.owner,
+        chunk_pages=chunk_pages,
     )
 
 
